@@ -43,8 +43,8 @@ class Ray():
         """
         Draw ray on screen.
         """
-        bgl.glColor4f(0.6,0.6,0.4,0.3)
-        bgl.glLineWidth(1.4)
+        bgl.glColor4f(0.8,0.8,0.9,0.01)
+        bgl.glLineWidth(0.01)
 
         bgl.glBegin(bgl.GL_LINES)
         bgl.glVertex3f(self.p1[0],self.p1[1],self.p1[2])
@@ -68,6 +68,9 @@ class Room():
         :type kx_obj: KX_GameObject
         """
         self.obj = kx_obj
+        # TODO: ADD GLOBAL NUMBERING ON '...' PROPERTY (TO AVOID 2 OBJECTS HAVING THE SAME)
+        if not 'room' in self.obj:
+            self.obj['room'] = 0
 
     def getPropsListAsOSCMsgs(self):
         """
@@ -147,6 +150,9 @@ class SourceListener():
         self.type = typeOfInstance # either 'source' or 'listener'
         self.old_worldTransform = None
         self.moveThreshold = 0.0
+        # TODO: ADD GLOBAL NUMBERING ON '...' PROPERTY (TO AVOID 2 OBJECTS HAVING THE SAME)
+        if not self.type in self.obj:
+            self.obj[self.type] = 0
 
     def setMoveThreshold(self, threshold):
         """
@@ -184,7 +190,7 @@ class SourceListener():
         :return: typically: '/listener listener_1 -0.76 -0.65 0.0 0.0 -0.13 0.15 0.98 0.0 -0.63 0.75 -0.19 0.0 4.62 -5.45 3.08 1.0'
         :rtype: String
         """
-        msg = self._shapeOSCMsg('/' + self.type, self.obj.name, self.obj.worldTransform)
+        msg = self._shapeOSCMsg('/' + self.type, self.type + '_' + str(self.obj[self.type]), self.obj.worldTransform)
         return msg
 
     def _shapeOSCMsg(self, header, ID, mat44):
