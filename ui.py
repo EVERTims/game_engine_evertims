@@ -46,6 +46,11 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
         rowsub.operator("evert.import_template", text="Source").arg = 'source'
         rowsub = col.row(align=True)
         rowsub.operator("evert.import_template", text="Listener").arg = 'listener'
+        rowsub = col.row(align=True)
+        rowsub.operator("evert.import_script", text="Room materials (.txt)").arg = 'materialList'
+        rowsub = col.row(align=True)
+        rowsub.alignment = 'RIGHT'
+        rowsub.label("> see Text Editor")
 
         # Define elements
         col = layout.column()
@@ -57,35 +62,38 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
         rowsub = col.row(align=True)
         rowsub.operator("evert.set_evert_elmt", text="Listener").arg = 'listener'
 
-        # Script configuration
+        # line break
         col = layout.column()
-        col.label("Debug tools:")
-        rowsub = col.row(align=True)
-        rowsub.prop(evertims, "debug_rays", text="Draw rays in BGE")
-        rowsub = col.row(align=True)
-        rowsub.prop(evertims, "debug_logs", text="Print BGE logs in console")
+        col.label("")
 
         # Network configuration
         col = layout.column()
-        col.label("Network Configuration:")
         rowsub = col.row(align=True)
         rowsub.label("Local IP address:")
         rowsub = col.row()
         rowsub.prop(evertims, "ip_local", text="")
         rowsub = col.row()
-        rowsub.label("port:")
+        rowsub.label("Port:")
         rowsub.prop(evertims, "port_read", text="")
         rowsub = col.row(align=True)
-        rowsub.label("EVERTims host IP address:")
+        rowsub.label("EVERTims IP address:")
         rowsub = col.row()
         rowsub.prop(evertims, "ip_client", text="")
         rowsub = col.row()
-        rowsub.label("port:")
+        rowsub.label("Port:")
         rowsub.prop(evertims, "port_write", text="")
+
+        # line break
+        col = layout.column()
+        col.label("")
 
         # Simulation Setup
         col = layout.column()
         col.label("Simulation parameters:")
+        rowsub = col.row(align=True)
+        rowsub.prop(evertims, "debug_rays", text="Draw rays in BGE")
+        rowsub = col.row(align=True)
+        rowsub.prop(evertims, "debug_logs", text="Print BGE logs in console")
         rowsub = col.row(align=True)
         split = rowsub.split(percentage=0.7)
         colsub = split.column()
@@ -94,17 +102,6 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
         colsub = split.column()
         colsub.prop(evertims, "movement_jnd", text="")
 
-        # Room materials datablock manager
-        col = layout.column()
-        col.label("Available room material (names):")
-        rowsub = col.row(align=True)
-        rowsub.label("absorber")
-        rowsub = col.row(align=True)
-        rowsub.label("concrete")
-        rowsub = col.row(align=True)
-        rowsub.label("woodfloor")
-        # col.operator("evert.pop_up_materials", text="Available room material").arg = 'materials'
-        # layout.template_ID_preview(obj, "active_material", new="catt.matcreate")
 
 # ############################################################
 # Un/Registration

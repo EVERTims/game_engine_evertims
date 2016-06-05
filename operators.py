@@ -2,6 +2,7 @@ import bpy
 import os
 from bpy.types import Operator
 
+ASSET_FILE_NAME = "evertims-assets.blend"
 # ---------------------------------------------------------------
 # EXACT REPEAT OF SCRIPT IN __INIT__.PY UNTIL FOUND A CLEANER WAY
 ignore_change_props_list = (
@@ -26,9 +27,9 @@ def update_evertims_props(self, context):
                 obj.game.properties[propName].value = propValue
 # ---------------------------------------------------------------
 
-class EVERTimsImportElements(Operator):
+class EVERTimsImportObject(Operator):
     """"""
-    bl_label = "Load Configuration File"
+    bl_label = "Import an object (KXGameObject, Empty, etc.) from anther .blend file"
     bl_idname = 'evert.import_template'
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -42,7 +43,7 @@ class EVERTimsImportElements(Operator):
         bpy.ops.object.select_all(action='DESELECT')
 
         # set asset .blend file name
-        filename = 'evertims-assets.blend'
+        filename = ASSET_FILE_NAME
         obj = None
 
         if loadType == 'scene':
@@ -90,9 +91,49 @@ class EVERTimsImportElements(Operator):
         return obj
 
 
-class EVERTimsSetElements(Operator):
+class EVERTimsImportText(Operator):
     """"""
-    bl_label = "Load Configuration File"
+    bl_label = "Import a text file from anther .blend file"
+    bl_idname = 'evert.import_script'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    arg = bpy.props.StringProperty()
+
+    def execute(self, context):
+
+        loadType = self.arg
+
+        # set asset .blend file name
+        filename = ASSET_FILE_NAME
+
+        if loadType == 'materialList':
+            isLoaded = self.loadAsset(filename, ('evertims-materials.txt'))
+
+        if not isLoaded:
+            self.report({'ERROR'}, 'something went wrong')
+            return {'CANCELLED'}
+
+        else:
+            self.report({'INFO'}, 'EVERTims material file imported in Text Editor window.')
+            return {'FINISHED'}
+
+    def loadAsset(self, filename, objList):
+
+        scriptPath = os.path.realpath(__file__)
+        assetPath = os.path.join(os.path.dirname(scriptPath), 'assets', filename)
+
+        try:
+            with bpy.data.libraries.load(assetPath) as (data_from, data_to):
+                data_to.texts = [name for name in data_from.texts if name in objList]
+        except:
+            return False
+
+        return True
+
+
+class EVERTimsSetObject(Operator):
+    """"""
+    bl_label = "Define a Blender object as an EVERTims element"
     bl_idname = 'evert.set_evert_elmt'
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -115,85 +156,15 @@ class EVERTimsSetElements(Operator):
             prop.value = 0
             return {'FINISHED'}
 
-class EVERTimsPopupMaterial(Operator):
-    """"""
-    bl_label = "Load Configuration File"
-    bl_idname = 'evert.pop_up_materials'
-    bl_options = {'REGISTER', 'UNDO'}
-
-    arg = bpy.props.StringProperty()
-
-    def execute(self, context):
-
-        loadType = self.arg
-        return {'FINISHED'}
-
-
-
-
-# class EVERTimsLauncher(bpy.types.Operator):
-#     """"""
-#     bl_label = "EVERTims Launcher"
-#     bl_idname = 'evert.launcher'
-#     bl_options = {'REGISTER', 'UNDO'}
-
-#     arg = bpy.props.StringProperty(options={'HIDDEN'})
-
-#     def execute(self, context):
-
-#         # arg = self.arg.split('.')
-#         arg = self.arg
-
-#         # get file path
-#         scene = context.scene
-#         evertims = scene.evertims
-
-#         if arg == 'start':
-#             # tryout, start blenderplayer
-#             # bpy.ops.wm.blenderplayer_start()
-
-#             import subprocess
-#             args = ['python3', '/Users/AstrApple/WorkSpace/Blender_Workspace/addons/blendervr/source/blenderVR', 'controller']
-#             evertims.proc = subprocess.Popen(args,stdin=subprocess.PIPE, stdout=subprocess.PIPE, close_fds=True)
-#             print('opened',evertims.proc)
-
-#             # outs, errs = evertims.proc.communicate(timeout=15)
-#             outs, errs = evertims.proc.communicate()
-#             print('first words: \n', outs,errs)
-
-#             return {'FINISHED'}
-
-#         elif arg == 'stop':
-#             evertims.proc.kill()
-#             outs, errs = evertims.proc.communicate()
-#             print('subprocess killed, last words:')
-#             print(outs,errs)
-
-#             return {'FINISHED'}
-#         elif arg == 'debug.window':
-#             print('open debug window')
-#             area = bpy.ops.screen.area_dupli('INVOKE_DEFAULT')
-#             context.area.type = 'CONSOLE'
-#             # bpy.ops.screen.new('INVOKE_DEFAULT')
-
-
-#             return {'FINISHED'}
-
-#         else:
-#             self.report({'ERROR'}, 'arg (in launcher) not defined yet')
-#             return {'CANCELLED'}
-
 
 # ############################################################
 # Un/Registration
 # ############################################################
 
 classes = (
-    # EVERTimsLoadConfigurationFile,
-    EVERTimsImportElements,
-    EVERTimsSetElements,
-    EVERTimsPopupMaterial,
-    # EVERTimsLauncher
+    EVERTimsImportObject,
+    EVERTimsImportText,
+    EVERTimsSetObject
     )
 
 def register():
