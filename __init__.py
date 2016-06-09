@@ -122,10 +122,16 @@ class EVERTimsSettings(PropertyGroup):
             default=3862,
             update=update_evertims_props
             )
-    movement_jnd = FloatProperty(
-            name="Move JND",
+    movement_threshold_loc = FloatProperty(
+            name="Movement threshold location",
             description="Minimum value a listener / source must move to be updated on EVERTims client",
             default=1.0,
+            update=update_evertims_props
+            )
+    movement_threshold_rot = FloatProperty(
+            name="Movement threshold rotation",
+            description="Minimum value a listener / source must rotate to be updated on EVERTims client",
+            default=5.0,
             update=update_evertims_props
             )
 

@@ -1,6 +1,7 @@
 from bge import logic as gl
 from . import OSC
 import mathutils
+import math
 import socket
 import bgl
 
@@ -149,19 +150,21 @@ class SourceListener():
         self.obj = kx_obj
         self.type = typeOfInstance # either 'source' or 'listener'
         self.old_worldTransform = None
-        self.moveThreshold = 0.0
+        self.moveThresholdLoc = 0.0
+        self.moveThresholdRot = 0.0
         # TODO: ADD GLOBAL NUMBERING ON '...' PROPERTY (TO AVOID 2 OBJECTS HAVING THE SAME)
         if not self.type in self.obj:
             self.obj[self.type] = 0
 
-    def setMoveThreshold(self, threshold):
+    def setMoveThreshold(self, thresholdLoc, thresholdRot):
         """
         Define a threshold value to limit listener / source update to EVERTims client.
 
         :param threshold: value above which an EVERTims object as to move to be updated (in position) to the client
         :type threshold: Float
         """
-        self.moveThreshold = threshold
+        self.moveThresholdLoc = thresholdLoc
+        self.moveThresholdRot = thresholdRot
 
     def hasMoved(self):
         """
@@ -175,7 +178,7 @@ class SourceListener():
             self.old_worldTransform = self.obj.worldTransform.copy()
             return True
 
-        elif self._areDifferent_Mat44(self.obj.worldTransform, self.old_worldTransform, self.moveThreshold):
+        elif self._areDifferent_Mat44(self.obj.worldTransform, self.old_worldTransform, self.moveThresholdLoc, self.moveThresholdRot):
             # moved since last check
             self.old_worldTransform = self.obj.worldTransform.copy()
             return True
@@ -203,25 +206,27 @@ class SourceListener():
         osc_msg = header + ' ' + ID + ' ' + mat44_str
         return osc_msg
 
-    def _areDifferent_Mat44(self, mat1, mat2, JND = 1.0):
+    def _areDifferent_Mat44(self, mat1, mat2, thresholdLoc = 1.0, thresholdRot = 1.0):
         """
         Check if 2 input matrices are different above a certain threshold.
 
         :param mat1: input Matrix
         :param mat2: input Matrix
-        :param JND: threshold above which delta translation / rotation between the 2 matrix has to be for them to be qualified as different
+        :param thresholdLoc: threshold above which delta translation between the 2 matrix has to be for them to be qualified as different
+        :param thresholdRot: threshold above which delta rotation between the 2 matrix has to be for them to be qualified as different
         :type mat1: mathutils.Matrix
         :type mat2: mathutils.Matrix
-        :type JND: Float
+        :type thresholdLoc: Float
+        :type thresholdRot: Float
         :return: a boolean stating wheter the two matrices are different
         :rtype: Boolean
         """
         areDifferent = False
-        jnd_vect = mathutils.Vector((JND,JND,JND))
+        jnd_vect = mathutils.Vector((thresholdLoc,thresholdLoc,thresholdRot))
         t1, t2 = mat1.to_translation(), mat2.to_translation()
-        r1, r2 = mat1.to_quaternion().axis, mat2.to_quaternion().axis
+        r1, r2 = mat1.to_euler(), mat2.to_euler()
         for n in range(3):
-            if (abs(t1[n]-t2[n]) > JND) or (abs(r1[n]-r2[n]) > JND): areDifferent = True
+            if (abs(t1[n]-t2[n]) > thresholdLoc) or (abs(math.degrees(r1[n]-r2[n])) > thresholdRot): areDifferent = True
         return areDifferent
 
 class RayManager():

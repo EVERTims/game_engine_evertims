@@ -148,17 +148,19 @@ class Evertims():
                     msg = listener.getPropsAsOSCMsg()
                     self._sendOscMsg(self.connect['ip_evert'],self.connect['port_w'],msg)
 
-    def setMovementUpdateThreshold(self, threshold):
+    def setMovementUpdateThreshold(self, thresholdLoc, thresholdRot):
         """
         Define a threshold value to limit listener / source update to EVERTims client.
 
-        :param threshold: value above which an EVERTims object as to move to be updated (in position) to the client
-        :type threshold: Float
+        :param thresholdLoc: value (m) above which an EVERTims object as to move to be updated to the client
+        :param thresholdRot: value (deg) above which an EVERTims object as to rotate to be updated to the client
+        :type thresholdLoc: Float
+        :type thresholdRot: Float
         """
         for sourceName, source in self.sources.items():
-            source.setMoveThreshold(threshold)
+            source.setMoveThreshold(thresholdLoc, thresholdRot)
         for listenerName, listener in self.listeners.items():
-            listener.setMoveThreshold(threshold)
+            listener.setMoveThreshold(thresholdLoc, thresholdRot)
 
     def startClientSimulation(self):
         """

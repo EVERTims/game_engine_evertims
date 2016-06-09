@@ -95,13 +95,21 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
         rowsub = col.row(align=True)
         rowsub.prop(evertims, "debug_logs", text="Print BGE logs in console")
         rowsub = col.row(align=True)
-        split = rowsub.split(percentage=0.7)
+        rowsub.label("Movement Sensitivity:")
+        rowsub = col.row(align=True)
+        split = rowsub.split(percentage=0.5)
         colsub = split.column()
-        colsub.label("Movement Sensitivity:")
+        colsub.label("Location (m):")
         split = split.split()
         colsub = split.column()
-        colsub.prop(evertims, "movement_jnd", text="")
-
+        colsub.prop(evertims, "movement_threshold_loc", text="")
+        rowsub = col.row(align=True)
+        split = rowsub.split(percentage=0.5)
+        colsub = split.column()
+        colsub.label("Rotation (deg):")
+        split = split.split()
+        colsub = split.column()
+        colsub.prop(evertims, "movement_threshold_rot", text="")
 
 # ############################################################
 # Un/Registration
