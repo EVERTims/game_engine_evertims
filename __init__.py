@@ -54,14 +54,19 @@ else:
 import imp
 
 
+# ---------------------------------------------------------------
+# EXACT REPEAT OF SCRIPT IN __INIT__.PY UNTIL FOUND A CLEANER WAY
 ignore_change_props_list = (
-    "rna_type", "screen_setup", "name", "bl_rna",
+    "enable_edit_mode", "rna_type", "screen_setup", "name", "bl_rna",
     "__dict__", "__doc__", "__module__", "__weakref__"
 )
 
 def update_evertims_props(self, context):
     scene = context.scene
     evertims = scene.evertims
+
+    # remember current active object
+    old_obj = bpy.context.scene.objects.active
 
     # get logic object
     obj = bpy.context.scene.objects.get('Logic_EVERTims')
@@ -75,8 +80,10 @@ def update_evertims_props(self, context):
                 propValue = eval('evertims.' + propName)
                 obj.game.properties[propName].value = propValue
 
-
-
+    # reset old active object
+    if old_obj:
+        bpy.context.scene.objects.active = old_obj
+# ---------------------------------------------------------------
 
 class EVERTimsSettings(PropertyGroup):
 
@@ -85,6 +92,11 @@ class EVERTimsSettings(PropertyGroup):
             description='Activate EVERTims module in BGE',
             default=True,
             update=update_evertims_props
+            )
+    enable_edit_mode = BoolProperty(
+            name="Enable EVERTims in EDIT mode",
+            description='Activate real-time update of the EVERTims client from Blender outside the BGE (in casual edit mode)',
+            default=False,
             )
     debug_rays = BoolProperty(
             name="Draw Rays",

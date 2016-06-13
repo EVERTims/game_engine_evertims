@@ -1,4 +1,16 @@
-from bge import logic as gl
+# ------------------------------------
+BLENDER_MODE=None
+try:
+    from bge import logic as gl
+    BLENDER_MODE = 'BGE'
+except ImportError:
+    # second because bpy can be imported in
+    # blender bge (not in blenderplayer bge though)
+    import bpy
+    BLENDER_MODE = 'BPY'
+print ('detected mode:', BLENDER_MODE)
+# ------------------------------------
+
 from .evertClass import *
 from . import OSC
 import socket
@@ -42,14 +54,45 @@ class Evertims():
         'buffer_size': 0,           # Buffer size (socket buffer) process will discard packets to receive new ones - no packet discarded if 0 (RealTime / NoError mode)
         }
 
+        # define bpy handles
+        self.bpy_handle_callback = None
+
+        self.limit_update_room_update_timer = 0
+
     def __del__(self):
         """
         EVERTims class destructor
+        """
+        self._del_common()
+
+        if BLENDER_MODE == 'BPY':
+            self.handle_remove()
+
+    def _del_common(self):
+        """
+        Destructor common to BGE and BPY modes
         """
         # close socket used for raytracing feedback if option was enabled
         if self.traceRays:
             if self.dbg: print('closing read socket (the one used for raytracing feedback)')
             self.connect['socket'].close()
+
+
+    def handle_remove(self):
+        """
+        Destructor specific to BPY mode
+        """
+        self._del_common()
+
+        # remove callback from stack in bpy mode
+        if self.bpy_handle_callback is not None:
+            bpy.types.SpaceView3D.draw_handler_remove(self.bpy_handle_callback, 'WINDOW')
+            self.bpy_handle_callback = None
+            if self.dbg: print('removed evertims module callback from draw_handler')
+        if self.rayManager is not None:
+            self.rayManager.handle_remove()
+        # clear room callback
+        bpy.app.handlers.scene_update_pre.clear()
 
     def setDebugMode(self, setDebug):
         """
@@ -59,6 +102,9 @@ class Evertims():
         :type setDebug: Bool
         """
         self.dbg = setDebug
+
+    def setBufferSize(self, buffer_size):
+        self.connect['buffer_size'] = buffer_size
 
     def addRoom(self, obj):
         """
@@ -130,23 +176,31 @@ class Evertims():
         :param objType: which type of object to update: either 'room', 'source', 'listener', or 'mobile' (i.e. 'source' and 'listener')
         :type objType: String
         """
+        somethingToUpdate = False
+
         if (objType == 'room') or not objType:
             for roomName, room in self.rooms.items():
-                msgList = room.getPropsListAsOSCMsgs()
-                for msg in msgList:
-                    self._sendOscMsg(self.connect['ip_evert'],self.connect['port_w'],msg)
+                if room.hasChanged():
+                    somethingToUpdate = True
+                    msgList = room.getPropsListAsOSCMsgs()
+                    for msg in msgList:
+                        self._sendOscMsg(self.connect['ip_evert'],self.connect['port_w'],msg)
 
         if (objType == 'source') or (objType == 'mobile') or not objType:
             for sourceName, source in self.sources.items():
                 if source.hasMoved():
+                    somethingToUpdate = True
                     msg = source.getPropsAsOSCMsg()
                     self._sendOscMsg(self.connect['ip_evert'],self.connect['port_w'],msg)
 
         if (objType == 'listener') or (objType == 'mobile') or not objType:
             for listenerName, listener in self.listeners.items():
                 if listener.hasMoved():
+                    somethingToUpdate = True
                     msg = listener.getPropsAsOSCMsg()
                     self._sendOscMsg(self.connect['ip_evert'],self.connect['port_w'],msg)
+
+        return somethingToUpdate
 
     def setMovementUpdateThreshold(self, thresholdLoc, thresholdRot):
         """
@@ -172,7 +226,11 @@ class Evertims():
         # send '/facefinished' to EVERTims client (start calculations)
         self._sendOscMsg(self.connect['ip_evert'],self.connect['port_w'],'/facefinished')
         # add local pre_draw method to to scene callback
-        gl.getCurrentScene().pre_draw.append(self._pre_draw)
+        if BLENDER_MODE == 'BGE':
+            gl.getCurrentScene().pre_draw.append(self._pre_draw_bge)
+        elif BLENDER_MODE == 'BPY':
+            self.bpy_handle_callback = bpy.types.SpaceView3D.draw_handler_add(self._pre_draw_bpy, (None,None), 'WINDOW', 'PRE_VIEW')
+            if self.dbg: print('added evertims module callback to draw_handler')
 
     def activateRayTracingFeedback(self, shouldTraceRays):
         """
@@ -205,13 +263,48 @@ class Evertims():
             else:
                 print('### Cannot establish downlink connection to EVERTims server, Raytracing feedback deactivated')
 
-    def _pre_draw(self):
+    def _pre_draw_bge(self):
         """
-        Method added to scene pre_draw stack,
-        called before rendering each frame in BGE.
+        Callback method.
+        pre draw callback adapted to bge context (accepts no arguments)
         """
-        # update listener / source position in Client
+        self._pre_draw_common()
+
+    def _pre_draw_bpy(self, bpy_dummy_self, bpy_dummy_context):
+        """
+        Callback method.
+        pre draw callback adapted to bpy context (expects self and context arguments)
+        """
+        self._pre_draw_common()
+
+    def _pre_draw_common(self):
+        """
+        Callback method.
+        pre draw callback
+        """
         self.updateClient('mobile')
+
+    def bpy_modal(self):
+        """
+        Callback method.
+        called from add-on modal loop (Always).
+        (note: despite the lack of _ in front of method name, this method should not be
+        included in the end-user API)
+        """
+        # update ray tracing manager
+        if self.rayManager is not None:
+            self.rayManager.bpy_modal();
+
+        # update room (limited to every N frame not to overload EVERTims client)
+        self.limit_update_room_update_timer += 1
+        if self.limit_update_room_update_timer > 100:
+            self.limit_update_room_update_timer = 0
+
+            roomHasChanged = self.updateClient('room')
+            if roomHasChanged:
+                if self.dbg: print('# reload room geometry')
+                self._sendOscMsg(self.connect['ip_evert'],self.connect['port_w'],'/facefinished')
+
 
     def _getOscSocket(self, ip,host):
         """

@@ -1,4 +1,17 @@
-from bge import logic as gl
+# ------------------------------------
+BLENDER_MODE=None
+try:
+    from bge import logic as gl
+    BLENDER_MODE = 'BGE'
+except ImportError:
+    # second because bpy can be imported in
+    # blender bge (not in blenderplayer bge though)
+    import bpy
+    BLENDER_MODE = 'BPY'
+print ('detected mode:', BLENDER_MODE)
+# ------------------------------------
+
+
 from . import OSC
 import mathutils
 import math
@@ -55,6 +68,8 @@ class Ray():
         bgl.glNormal3f(0.0,0.0,1.0)
         bgl.glShadeModel(bgl.GL_SMOOTH);
 
+def test(scene):
+    print('true update')
 
 class Room():
     """
@@ -73,6 +88,44 @@ class Room():
         if not 'room' in self.obj:
             self.obj['room'] = 0
 
+        self.is_updated = True
+
+        if BLENDER_MODE == 'BPY':
+            print('added room callback to scene_update_pre stack')
+            bpy.app.handlers.scene_update_pre.append(self._check_for_updates_callback)
+
+    def hasChanged(self):
+        """
+        Check if room has changed since last check.
+
+        :return: a boolean saying whether or not the room changed since last check
+        :rtype: Boolean
+        """
+        if self.is_updated:
+            self.is_updated = False
+            return True
+        else:
+            return False
+
+        # if not self.hasBeenUpdatedOnce:
+        #     self.hasBeenUpdatedOnce = True
+        #     return True
+        # else:
+        #     if BLENDER_MODE == 'BPY':
+        #         # for e in dir(self.obj): print(e)
+        #         # print(self.obj, self.obj.name, self.obj.is_updated, self.obj.is_updated_data)
+        #         # return self.obj.is_updated # DOESN't UPDATE A THING!
+        #         # return True
+        #         return self.is_updated
+
+        # return False # no update in BGE mode
+
+    def _check_for_updates_callback(self, scene):
+        if not self.is_updated: # do not set to false here
+            self.is_updated = self.obj.is_updated
+            # print('check for room update', self.is_updated)
+
+
     def getPropsListAsOSCMsgs(self):
         """
         Return a list of OSC formatted messages holding room properties
@@ -82,7 +135,12 @@ class Room():
         :rtype: List
         """
         formatedMsg = []
-        polygonDict = self._getFacesAndMaterials()
+
+        if BLENDER_MODE == 'BGE':
+            polygonDict = self._getFacesAndMaterials()
+        elif BLENDER_MODE == 'BPY':
+            polygonDict = self._getFacesAndMaterials_bpy()
+
         for key in polygonDict.keys():
             faceID = str(key)
             matID = polygonDict[key]['material']
@@ -116,8 +174,40 @@ class Room():
             v3_xyz = room.worldTransform * mesh.getVertex(poly.material_id, poly.v3).XYZ
             v4_xyz = room.worldTransform * mesh.getVertex(poly.material_id, poly.v4).XYZ
             polygonDict[n+1]['vertices'] = [v1_xyz, v2_xyz, v3_xyz, v4_xyz]
-
             # if gl.dbg: print ('  ' + 'face ' + str(n) + ' - materials '+ poly.material_name.replace('MA',''))
+        return polygonDict
+
+    def _getFacesAndMaterials_bpy(self):
+        """
+        Return a dictionary which elements represent the vertices and material of a face.
+
+        :return: dict of dict, each dict holds items representing a face: keys are 'material' (String naming the material) and 'vertices' (N-element list of the vertices that compose the face, each element of said list is a list of the vertice's coordinates).
+        :rtype: Dictionary
+        """
+        obj = self.obj
+        mesh = obj.data
+        polygonDict = {}          # a dict that holds faces (dict), their vertices (dict: positions and materials)
+
+        for n in range (0, len(mesh.polygons)):
+            f = mesh.polygons[n] # current face
+
+            # create local dict
+            d = {}
+
+            # get face material
+            slot = obj.material_slots[f.material_index]
+            mat = slot.material
+            d['material'] = mat.name
+
+            # get face vertices
+            v_list = []
+            for v in f.vertices: # browse through vertice index
+                vect = obj.matrix_world * mesh.vertices[v].co
+                v_list.append(vect)
+            d['vertices'] = v_list
+
+            # store local dict
+            polygonDict[n] = d
         return polygonDict
 
     def _shapeFaceMsg(self, faceID,matID,pListVect):
@@ -173,14 +263,19 @@ class SourceListener():
         :return: a boolean saying whether or not the source / listener moved since last check
         :rtype: Boolean
         """
+        if BLENDER_MODE == 'BGE':
+            world_tranform = self.obj.worldTransform.copy()
+        elif BLENDER_MODE == 'BPY':
+            world_tranform = self.obj.matrix_world.copy()
+
         # if objed has not yet been checked
         if not self.old_worldTransform:
-            self.old_worldTransform = self.obj.worldTransform.copy()
+            self.old_worldTransform = world_tranform
             return True
 
-        elif self._areDifferent_Mat44(self.obj.worldTransform, self.old_worldTransform, self.moveThresholdLoc, self.moveThresholdRot):
+        elif self._areDifferent_Mat44(world_tranform, self.old_worldTransform, self.moveThresholdLoc, self.moveThresholdRot):
             # moved since last check
-            self.old_worldTransform = self.obj.worldTransform.copy()
+            self.old_worldTransform = world_tranform
             return True
         else:
             # did not move since last check
@@ -193,7 +288,14 @@ class SourceListener():
         :return: typically: '/listener listener_1 -0.76 -0.65 0.0 0.0 -0.13 0.15 0.98 0.0 -0.63 0.75 -0.19 0.0 4.62 -5.45 3.08 1.0'
         :rtype: String
         """
-        msg = self._shapeOSCMsg('/' + self.type, self.type + '_' + str(self.obj[self.type]), self.obj.worldTransform)
+        if BLENDER_MODE == 'BGE':
+            world_tranform = self.obj.worldTransform
+            obj_type_id = self.obj[self.type]
+        elif BLENDER_MODE == 'BPY':
+            world_tranform = self.obj.matrix_world
+            obj_type_id = self.obj.game.properties[self.type].value
+
+        msg = self._shapeOSCMsg('/' + self.type, self.type + '_' + str(obj_type_id), world_tranform)
         return msg
 
     def _shapeOSCMsg(self, header, ID, mat44):
@@ -251,20 +353,80 @@ class RayManager():
         self.rayDict = {}
         self.missedRayCounter = 0
 
-        # add local pre_draw method to to scene callback
-        gl.getCurrentScene().pre_draw.append(self._pre_draw)
+        # define bpy handle
+        self._draw_handler_handle = None
 
-    def _pre_draw(self):
+        # add local pre_draw method to to scene callback
+        if BLENDER_MODE == 'BGE':
+            gl.getCurrentScene().pre_draw.append(self._pre_draw_bge)
+        elif BLENDER_MODE == 'BPY':
+            self._draw_handler_handle = bpy.types.SpaceView3D.draw_handler_add(self._draw_handler, (None,None), 'WINDOW', 'PRE_VIEW')
+            if self.dbg: print('added evertims module raytracing callback to draw_handler')
+
+    def __del__(self):
         """
-        Method added to scene pre_draw stack,
-        called before rendering each frame in BGE.
+        Main Destructor
+        """
+        self.del_common()
+
+
+    def handle_remove(self):
+        """
+        Destructor related method, called when EVERTims bpy module disabled from addon
+        """
+        self.del_common()
+
+    def del_common(self):
+        """
+        Destructor actions
+        """
+        if BLENDER_MODE == 'BPY':
+            if self._draw_handler_handle is not None:
+                bpy.types.SpaceView3D.draw_handler_remove(self._draw_handler_handle, 'WINDOW')
+                self._draw_handler_handle = None
+                if self.dbg: print('removed evertims module raytracing callback from draw_handler')
+
+    def _pre_draw_common(self):
+        """
+        Callback method.
+        Common to BPY and BGE mode
         """
         # read socket content
         msg = self._readSocket()
         # add ray to local dict
         if msg:
             self._syncRayDict(msg)
+
+    def _pre_draw_bge(self):
+        """
+        Callback method.
+        invoked in BGE mode every frame
+        """
+        self._pre_draw_common()
         # draw rays
+        self._drawRays()
+
+    # NOTE FOR SELF:
+    # I had to split the raytracing drawing on screen in two methods:
+    # bpy_modal, run always, that receives packets from EVERTims client
+    # and _draw_handler called as a draw_handler, i.e. every
+    # time something changes on the screen.
+    # the reason is that rays are not traced if the _drawRays() method is called
+    # in the modal loop (go wonder why though). Best solution would be to find a draw_handler equivalent
+    # called every N frame (and not only when something moves on the screen)
+
+    def bpy_modal(self):
+        """
+        Callback method.
+        invoked from main evertims module bpy_modal (always)
+        """
+        self._pre_draw_common()
+
+    def _draw_handler(self, bpy_dummy_self, bpy_dummy_context):
+        """
+        Callback method.
+        invoked in bpy.types.SpaceView3D draw_handler (every time something moves on Blender 3D view)
+        """
         self._drawRays()
 
     def _syncRayDict(self, msg):

@@ -111,6 +111,21 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
         colsub = split.column()
         colsub.prop(evertims, "movement_threshold_rot", text="")
 
+        # line break
+        col = layout.column()
+        col.label("")
+
+        # Simulation Setup
+        col = layout.column()
+        col.label("On the fly auralization:")
+        rowsub = col.row(align=True)
+
+        # real time auralization
+        if not evertims.enable_edit_mode:
+            rowsub.operator("evert.evertims_in_edit_mode", text="PLAY", icon="RADIOBUT_OFF").arg ='PLAY'
+        else:
+            rowsub.operator("evert.evertims_in_edit_mode", text="STOP", icon="REC").arg ='STOP'
+
 # ############################################################
 # Un/Registration
 # ############################################################
