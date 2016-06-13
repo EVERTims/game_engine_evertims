@@ -76,7 +76,6 @@ class Evertims():
             if self.dbg: print('closing read socket (the one used for raytracing feedback)')
             self.connect['socket'].close()
 
-
     def handle_remove(self):
         """
         Destructor specific to BPY mode
@@ -113,6 +112,12 @@ class Evertims():
         :type obj: KX_GameObject
         """
         self.rooms[obj.name] = Room(obj)
+
+    def getRoom(self):
+        # TODO: EVERTIms client accepts only one room for now, code may as well
+        # reflect that feature
+        for k in self.rooms:
+            return self.rooms[k].obj
 
     def addSource(self, obj):
         """

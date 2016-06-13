@@ -206,16 +206,23 @@ class EVERTimsInEditMode(Operator):
         obj = bpy.context.scene.objects.active
 
         if loadType == 'PLAY':
-            # update enable flag
-            evertims.enable_edit_mode = True
 
             # init evertims
-            self.initEvertims(context)
+            isInitOk = self.initEvertims(context)
 
-            # add callback
-            self.handle_add(self,context)
+            if isInitOk:
+                # update enable flag
+                evertims.enable_edit_mode = True
 
-            return {'RUNNING_MODAL'}
+                # add callback
+                self.handle_add(self,context)
+
+                return {'RUNNING_MODAL'}
+            else:
+
+                self.report({'ERROR'}, 'Create at least 1 room (with material), 1 listener, 1 source and import EVERTims Logic object')
+                return {'CANCELLED'}
+
 
         elif loadType == 'STOP':
             # update enable flag
@@ -280,6 +287,12 @@ class EVERTimsInEditMode(Operator):
                 self._evertims.addListener(obj)
                 if evertims.debug_logs: print('adding listener: ', obj.name)
 
+        # get logic object
+        logic_obj = bpy.context.scene.objects.get('Logic_EVERTims')
+
+        # get room for later check
+        room_obj = self._evertims.getRoom()
+
         # limit listener / source position updates in EVERTims Client
         self._evertims.setMovementUpdateThreshold(MOVE_UPDATE_THRESHOLD_VALUE_LOC, MOVE_UPDATE_THRESHOLD_VALUE_ROT)
 
@@ -291,13 +304,16 @@ class EVERTimsInEditMode(Operator):
         self._evertims.activateRayTracingFeedback(DEBUG_RAYS)
 
         # check if evertims module is ready to start
-        if self._evertims.isReady():
-            # start EVERTims client
-            if evertims.debug_logs: print ('start simulation...')
-            self._evertims.startClientSimulation()
+        if self._evertims.isReady() and logic_obj:
+            if room_obj.material_slots:
+                # start EVERTims client
+                if evertims.debug_logs: print ('start simulation...')
+                self._evertims.startClientSimulation()
+                return True
 
-        else:
-            print ('\n###### EVERTims SIMULATION ABORTED ###### \nYou should create at least 1 room, 1 listener, 1 source, \nand define EVERTims client parameters.\n')
+
+        print ('\n###### EVERTims SIMULATION ABORTED ###### \nYou should create at least 1 room (with an EVERTims material), 1 listener, 1 source, \nimport the EVERTims Logic object \nand define EVERTims client parameters.\n')
+        return False
 
 
 
