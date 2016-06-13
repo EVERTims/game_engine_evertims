@@ -8,7 +8,6 @@ except ImportError:
     # blender bge (not in blenderplayer bge though)
     import bpy
     BLENDER_MODE = 'BPY'
-print ('detected mode:', BLENDER_MODE)
 # ------------------------------------
 
 from .evertClass import *

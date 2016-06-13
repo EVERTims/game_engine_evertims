@@ -8,7 +8,6 @@ except ImportError:
     # blender bge (not in blenderplayer bge though)
     import bpy
     BLENDER_MODE = 'BPY'
-print ('detected mode:', BLENDER_MODE)
 # ------------------------------------
 
 
@@ -91,7 +90,7 @@ class Room():
         self.is_updated = True
 
         if BLENDER_MODE == 'BPY':
-            print('added room callback to scene_update_pre stack')
+            # print('added room callback to scene_update_pre stack')
             bpy.app.handlers.scene_update_pre.append(self._check_for_updates_callback)
 
     def hasChanged(self):
