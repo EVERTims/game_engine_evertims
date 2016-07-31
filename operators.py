@@ -2,6 +2,21 @@ import bpy
 import os
 from bpy.types import Operator
 
+ # to launch EVERTims raytracing client
+import subprocess
+# ---------------------------------------------------------------
+# import components necessary to report EVERTims raytracing client
+# logs in console
+import sys
+import threading
+try:
+    from Queue import Queue, Empty
+except ImportError:
+    from queue import Queue, Empty  # python 3.x
+
+ON_POSIX = 'posix' in sys.builtin_module_names
+# ---------------------------------------------------------------
+
 ASSET_FILE_NAME = "evertims-assets.blend"
 # ---------------------------------------------------------------
 # EXACT REPEAT OF SCRIPT IN __INIT__.PY UNTIL FOUND A CLEANER WAY
@@ -167,20 +182,16 @@ class EVERTimsInEditMode(Operator):
     bl_idname = 'evert.evertims_in_edit_mode'
     bl_options = {'REGISTER', 'UNDO'}
 
-    _handle_draw_callback = None
-    _handle_timer = None
-
     arg = bpy.props.StringProperty()
 
     from .assets.scripts.evertims import Evertims
     _evertims = Evertims()
 
-
     @staticmethod
     def handle_add(self, context):
         # EVERTimsInEditMode._handle_draw_callback = bpy.types.SpaceView3D.draw_handler_add(EVERTimsInEditMode._draw_callback, (self,context), 'WINDOW', 'PRE_VIEW')
-        EVERTimsInEditMode._handle_timer = context.window_manager.event_timer_add(0.075, context.window)
         context.window_manager.modal_handler_add(self)
+        EVERTimsInEditMode._handle_timer = context.window_manager.event_timer_add(0.075, context.window)
         if context.scene.evertims.debug_logs: print('added evertims callback to draw_handler')
 
     @staticmethod
@@ -188,6 +199,7 @@ class EVERTimsInEditMode(Operator):
         if EVERTimsInEditMode._handle_timer is not None:
             context.window_manager.event_timer_remove(EVERTimsInEditMode._handle_timer)
             EVERTimsInEditMode._handle_timer = None
+            # context.window_manager.modal_handler_add(self)
             # bpy.types.SpaceView3D.draw_handler_remove(EVERTimsInEditMode._handle_draw_callback, 'WINDOW')
             # EVERTimsInEditMode._handle_draw_callback = None
             if context.scene.evertims.debug_logs: print('removed evertims callback from draw_handler')
@@ -203,7 +215,7 @@ class EVERTimsInEditMode(Operator):
         loadType = self.arg
 
         # get active object
-        obj = bpy.context.scene.objects.active
+        # obj = bpy.context.scene.objects.active
 
         if loadType == 'PLAY':
 
@@ -242,26 +254,27 @@ class EVERTimsInEditMode(Operator):
         """
         modal method, run always, call cancel function when Blender quit / load new scene
         """
-        scene = context.scene
-        evertims = scene.evertims
-
-        if evertims.enable_edit_mode:
+        if event.type == 'TIMER' and context.scene.evertims.enable_edit_mode:
+            # run evertims internal callbacks
             self._evertims.bpy_modal()
+            # force bgl rays redraw (else only redraw rays on user input event)
+            context.area.tag_redraw()
 
         return {'PASS_THROUGH'}
 
 
     def cancel(self, context):
         """
-        function called when Blender quit / load new scene. Remove local callback from stack
+        called when Blender quit / load new scene. Remove local callback from stack
         """
         self.handle_remove(context)
 
 
     def initEvertims(self, context):
-
-        scene = context.scene
-        evertims = scene.evertims
+        """
+        init the Evertims() class instance, using GUI defined parameters (in evertims add-on pannel)
+        """
+        evertims = context.scene.evertims
 
         IP_EVERT = evertims.ip_client # EVERTims client IP address
         PORT_W = evertims.port_write # port used by EVERTims client to read data sent by the BGE
@@ -318,11 +331,141 @@ class EVERTimsInEditMode(Operator):
         return False
 
 
+class EVERTimsRaytracingClient(Operator):
+    """
+    Class that handles Evertims raytracing client, launched as a subprocess from Blender GUI (in addon pannel)
+    """
+    bl_label = ""
+    bl_idname = 'evert.evertims_raytracing_client'
+    bl_options = {'REGISTER', 'UNDO'}
 
-    # def _draw_callback(self, context):
-    #     """
-    #     """
-    #     print ('run callback...')
+    _raytracing_process = None
+    _raytracing_debug_log_thread = None
+    _raytracing_debug_log_queue = None
+    _handle_timer = None
+    _raytracing_debug_thread_stop_event = None
+
+    arg = bpy.props.StringProperty()
+
+    @staticmethod
+    def handle_add(self, context):
+        """
+        called when starting the Evertims raytracing client with debug mode enabled,
+        starts necessary callbacks to output client logs in Blender console.
+        """
+        # start thread for non-blocking log
+        EVERTimsRaytracingClient._raytracing_debug_log_queue = Queue()
+        EVERTimsRaytracingClient._raytracing_debug_thread_stop_event = threading.Event() # used to stop the thread
+        EVERTimsRaytracingClient._raytracing_debug_log_thread = threading.Thread(target=self.enqueue_output, args=(self._raytracing_process.stdout, EVERTimsRaytracingClient._raytracing_debug_log_queue, EVERTimsRaytracingClient._raytracing_debug_thread_stop_event))
+        EVERTimsRaytracingClient._raytracing_debug_log_thread.daemon = True # thread dies with the program
+        EVERTimsRaytracingClient._raytracing_debug_log_thread.start()
+
+        # start modal
+        context.window_manager.modal_handler_add(self)
+        EVERTimsRaytracingClient._handle_timer = context.window_manager.event_timer_add(0.075,  context.window)
+        if context.scene.evertims.debug_logs: print('added evertims raytracing log callback to draw_handler')
+
+    @staticmethod
+    def handle_remove(context):
+        """
+        called when terminating the Evertims raytracing client with debug mode enabled,
+        remove callbacks added in handle_add method.
+        """
+        if EVERTimsRaytracingClient._handle_timer is not None:
+            # kill modal
+            context.window_manager.event_timer_remove(EVERTimsRaytracingClient._handle_timer)
+            EVERTimsRaytracingClient._handle_timer = None
+            # context.window_manager.modal_handler_add(self)
+        # indicate it's ok to finish log in stdout thread
+        # EVERTimsRaytracingClient._raytracing_debug_log_thread.daemon = False
+        EVERTimsRaytracingClient._raytracing_debug_thread_stop_event.set()
+
+    @classmethod
+    def poll(cls, context):
+        return context.area.type == 'VIEW_3D'
+
+    def enqueue_output(self, out, queue, stop_event):
+        """
+        Based on the Queue python module, this callback runs when debug mode enabled,
+        allowing non-blocking print of Evertims raytracing client logs in Blender console.
+        """
+        if not stop_event.is_set():
+            for line in iter(out.readline, b''):
+                queue.put(line)
+            out.close()
+        else:
+            EVERTimsRaytracingClient._raytracing_debug_log_thread.stop()
+
+    def invoke(self, context, event):
+        """
+        Method called when button attached to local bl_idname clicked
+        """
+        evertims = context.scene.evertims
+        loadType = self.arg
+
+        # start Evertims raytracing client (subprocess)
+        if loadType == 'PLAY':
+
+            # get launch command
+            # cmd = "/Users/.../evertims/bin/ims -s 3858 -a 'listener_1/127.0.0.1:3860' -v 'listener_1/localhost:3862' -d 1 -D 2 -m /Users/.../evertims/resources/materials.dat -p 'listener_1/'"
+            client_args = " -s 3858 -a 'listener_1/127.0.0.1:3860' -v 'listener_1/localhost:3862' -d 1 -D 2 -p 'listener_1/'"
+            client_matFile = bpy.path.abspath(evertims.raytracing_client_path_to_matFile)
+            client_args = client_args + " -m " + client_matFile
+            client_bin = bpy.path.abspath(evertims.raytracing_client_path_to_binary)
+            client_cmd = client_bin + client_args
+
+            # TODO: check ims path correct and allow user to define arguments
+
+            # launch subprocess
+            EVERTimsRaytracingClient._raytracing_process = subprocess.Popen(client_cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1, close_fds=ON_POSIX)
+            evertims.enable_raytracing_client = True
+
+            # enable log in Blender console if debug mode enabled
+            if evertims.debug_logs_raytracing:
+                print('launch EVERTims raytracing client subprocess')
+                self.handle_add(self, context)
+                return {'RUNNING_MODAL'}
+
+            else:
+                return {'FINISHED'}
+
+        # terminate Evertims raytracing client (subprocess)
+        elif loadType == 'STOP':
+
+            # terminate subprocess
+            self._raytracing_process.terminate()
+            evertims.enable_raytracing_client = False
+
+            # terminate log-in-Blender-console related thread if debug mode enabled
+            if evertims.debug_logs_raytracing or self._handle_timer: # (if debug flag unabled while running)
+                print('terminate EVERTims raytracing client subprocess')
+                self.handle_remove(context)
+
+            return {'CANCELLED'}
+
+
+    def modal(self, context, event):
+        """
+        modal method, run always, call cancel function when Blender quit / load new scene
+        """
+
+        if event.type == 'TIMER':
+            try:
+                # get line from non-blocking Queue, attached to debug-log thread
+                line = EVERTimsRaytracingClient._raytracing_debug_log_queue.get_nowait() # or q.get(timeout=.1)
+            except Empty: # no output to print yet
+                pass
+            else: # got line, ready to print
+                sys.stdout.write(line.decode('utf-8'))
+
+        return {'PASS_THROUGH'}
+
+
+    def cancel(self, context):
+        """
+        function called when Blender quit / load new scene. Remove local callback from stack
+        """
+        self.handle_remove(context)
 
 
 # ############################################################
@@ -333,6 +476,7 @@ classes = (
     EVERTimsImportObject,
     EVERTimsImportText,
     EVERTimsSetObject,
+    EVERTimsRaytracingClient,
     EVERTimsInEditMode
     )
 

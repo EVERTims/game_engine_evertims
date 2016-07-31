@@ -57,6 +57,7 @@ import imp
 # ---------------------------------------------------------------
 # EXACT REPEAT OF SCRIPT IN __INIT__.PY UNTIL FOUND A CLEANER WAY
 ignore_change_props_list = (
+    "debug_logs_raytracing", "enable_raytracing_client",
     "enable_edit_mode", "rna_type", "screen_setup", "name", "bl_rna",
     "__dict__", "__doc__", "__module__", "__weakref__"
 )
@@ -98,15 +99,35 @@ class EVERTimsSettings(PropertyGroup):
             description='Activate real-time update of the EVERTims client from Blender outside the BGE (in casual edit mode)',
             default=False,
             )
+    enable_raytracing_client = BoolProperty(
+            name="Launch EVERTims raytracing client",
+            description='Launch the EVERTims raytracing client as a subprocess (embedded in Blender)',
+            default=False,
+            )
+    raytracing_client_path_to_binary = StringProperty(
+            name="EVERTims Raytracing binary path",
+            description="Path to the ims binary that handles EVERTims raytracing",
+            default="//", maxlen=1024, subtype="FILE_PATH",
+            )
+    raytracing_client_path_to_matFile = StringProperty(
+            name="EVERTims Raytracing material path",
+            description="Path to the .mat file used by the EVERTims raytracing client",
+            default="//", maxlen=1024, subtype="FILE_PATH",
+            )
+    debug_logs_raytracing = BoolProperty(
+            name="Print Raytracing Logs",
+            description='Print raytracing client logs in Blender console',
+            default=False,
+            )
     debug_rays = BoolProperty(
             name="Draw Rays",
-            description='Enable visual feedback on EVERTims ratracing in BGE',
-            default=False,
+            description='Enable visual feedback on EVERTims ratracing in Blender',
+            default=True,
             update=update_evertims_props
             )
     debug_logs = BoolProperty(
             name="Print Logs",
-            description='Print python logs in BGE console',
+            description='Print python logs in Blender console',
             default=False,
             update=update_evertims_props
             )

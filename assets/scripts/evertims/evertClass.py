@@ -87,10 +87,10 @@ class Room():
         if not 'room' in self.obj:
             self.obj['room'] = 0
 
-        self.oldMaterialCollection = self.obj.data.materials
         self.is_updated = True # name is ill chosen: understand "needs to be updated?", chosen for compliance with blender's internal ".is_updated"
 
         if BLENDER_MODE == 'BPY':
+            self.oldMaterialCollection = self.obj.data.materials
             # print('added room callback to scene_update_pre stack')
             bpy.app.handlers.scene_update_pre.append(self._check_for_updates_callback)
 
@@ -128,7 +128,7 @@ class Room():
             # check for material update
             # DOESN'T WORK IF ONLY CHANGE MATERIAL NAME
             # for e in self.obj.data.materials: print(e, dir(e))
-            if (self.oldMaterialCollection != self.obj.data.materials):
+            if (BLENDER_MODE == 'BPY') and (self.oldMaterialCollection != self.obj.data.materials):
                 self.is_updated = True
                 self.oldMaterialCollection = self.obj.data.materials
             # print('check for room update', self.is_updated)

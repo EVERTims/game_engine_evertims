@@ -37,30 +37,33 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
         col = layout.column()
         col.label("Import elements:")
         rowsub = col.row(align=True)
-        rowsub.operator("evert.import_template", text="Template scene").arg = 'scene'
+        rowsub.operator("evert.import_template", text="Template scene", icon='MESH_CUBE').arg = 'scene'
         rowsub = col.row(align=True)
-        rowsub.operator("evert.import_template", text="Logic").arg = 'logic'
+        rowsub.operator("evert.import_template", text="Logic", icon='EMPTY_DATA').arg = 'logic'
         rowsub = col.row(align=True)
-        rowsub.operator("evert.import_template", text="Room").arg = 'room'
+        rowsub.operator("evert.import_template", text="Room & Materials", icon='MESH_CUBE').arg = 'room'
         rowsub = col.row(align=True)
-        rowsub.operator("evert.import_template", text="Source").arg = 'source'
+        rowsub.operator("evert.import_template", text="Source", icon='MESH_CUBE').arg = 'source'
         rowsub = col.row(align=True)
-        rowsub.operator("evert.import_template", text="Listener").arg = 'listener'
+        rowsub.operator("evert.import_template", text="Listener", icon='MESH_CUBE').arg = 'listener'
         rowsub = col.row(align=True)
-        rowsub.operator("evert.import_script", text="Room materials (.txt)").arg = 'materialList'
+        rowsub.operator("evert.import_script", text="Room materials (.txt)", icon='TEXT').arg = 'materialList'
         rowsub = col.row(align=True)
         rowsub.alignment = 'RIGHT'
         rowsub.label("> see Text Editor")
+
+        # line break
+        col = layout.column()
 
         # Define elements
         col = layout.column()
         col.label("Selected to EVERTims element:")
         rowsub = col.row(align=True)
-        rowsub.operator("evert.set_evert_elmt", text="Room").arg = 'room'
+        rowsub.operator("evert.set_evert_elmt", text="Room", icon='CONSTRAINT').arg = 'room'
         rowsub = col.row(align=True)
-        rowsub.operator("evert.set_evert_elmt", text="Source").arg = 'source'
+        rowsub.operator("evert.set_evert_elmt", text="Source", icon='CONSTRAINT').arg = 'source'
         rowsub = col.row(align=True)
-        rowsub.operator("evert.set_evert_elmt", text="Listener").arg = 'listener'
+        rowsub.operator("evert.set_evert_elmt", text="Listener", icon='CONSTRAINT').arg = 'listener'
 
         # line break
         col = layout.column()
@@ -68,20 +71,43 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
 
         # Network configuration
         col = layout.column()
+
         rowsub = col.row(align=True)
-        rowsub.label("Local IP address:")
-        rowsub = col.row()
-        rowsub.prop(evertims, "ip_local", text="")
-        rowsub = col.row()
-        rowsub.label("Port:")
-        rowsub.prop(evertims, "port_read", text="")
+        rowsub.label("Local IP adress & port:")
         rowsub = col.row(align=True)
-        rowsub.label("EVERTims IP address:")
-        rowsub = col.row()
-        rowsub.prop(evertims, "ip_client", text="")
-        rowsub = col.row()
-        rowsub.label("Port:")
-        rowsub.prop(evertims, "port_write", text="")
+        split = rowsub.split(percentage=0.6)
+        colsub = split.column()
+        colsub.prop(evertims, "ip_local", text="")
+        colsub = split.column()
+        colsub.prop(evertims, "port_read", text="port")
+
+        rowsub = col.row(align=True)
+        rowsub.label("EVERTims IP adress & port:")
+        rowsub = col.row(align=True)
+        split = rowsub.split(percentage=0.6)
+        colsub = split.column()
+        colsub.prop(evertims, "ip_client", text="")
+        colsub = split.column()
+        colsub.prop(evertims, "port_write", text="port")
+
+        # line break
+        col = layout.column()
+        col.label("")
+
+        # EVERTims raytracing client setup
+        col = layout.column()
+        col.label("Embedded raytracing client:")
+        rowsub = col.row(align=True)
+        rowsub.prop(evertims, "raytracing_client_path_to_binary", text="ims")
+        rowsub = col.row(align=True)
+        rowsub.prop(evertims, "raytracing_client_path_to_matFile", text="mat")
+        rowsub = col.row(align=True)
+        rowsub.prop(evertims, "debug_logs_raytracing", text="print raytracing client logs in console")
+        rowsub = col.row(align=True)
+        if not evertims.enable_raytracing_client:
+            rowsub.operator("evert.evertims_raytracing_client", text="START", icon="RADIOBUT_OFF").arg ='PLAY'
+        else:
+            rowsub.operator("evert.evertims_raytracing_client", text="STOP", icon="REC").arg ='STOP'
 
         # line break
         col = layout.column()
@@ -89,42 +115,36 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
 
         # Simulation Setup
         col = layout.column()
-        col.label("Simulation parameters:")
+        # col.label("Simulation parameters:")
         rowsub = col.row(align=True)
-        rowsub.prop(evertims, "debug_rays", text="Draw rays in BGE")
+        rowsub.prop(evertims, "debug_rays", text="draw rays in 3DView & BGE")
         rowsub = col.row(align=True)
-        rowsub.prop(evertims, "debug_logs", text="Print BGE logs in console")
+        rowsub.prop(evertims, "debug_logs", text="print local logs in Blender console")
         rowsub = col.row(align=True)
-        rowsub.label("Movement Sensitivity:")
-        rowsub = col.row(align=True)
-        split = rowsub.split(percentage=0.5)
-        colsub = split.column()
-        colsub.label("Location (m):")
-        split = split.split()
-        colsub = split.column()
-        colsub.prop(evertims, "movement_threshold_loc", text="")
+        rowsub.label("Movement update threshold:")
         rowsub = col.row(align=True)
         split = rowsub.split(percentage=0.5)
         colsub = split.column()
-        colsub.label("Rotation (deg):")
-        split = split.split()
+        colsub.prop(evertims, "movement_threshold_loc", text="loc (m)")
         colsub = split.column()
-        colsub.prop(evertims, "movement_threshold_rot", text="")
+        colsub.prop(evertims, "movement_threshold_rot", text="rot (deg)")
 
         # line break
         col = layout.column()
-        col.label("")
 
-        # Simulation Setup
+        # Auralization in BPY
         col = layout.column()
         col.label("On the fly auralization:")
         rowsub = col.row(align=True)
-
-        # real time auralization
         if not evertims.enable_edit_mode:
-            rowsub.operator("evert.evertims_in_edit_mode", text="PLAY", icon="RADIOBUT_OFF").arg ='PLAY'
+            rowsub.operator("evert.evertims_in_edit_mode", text="START", icon="RADIOBUT_OFF").arg ='PLAY'
         else:
             rowsub.operator("evert.evertims_in_edit_mode", text="STOP", icon="REC").arg ='STOP'
+
+        # Auralization in BGE (exact equivalent of pressing "P" over 3D view)
+        col = layout.column()
+        col.label("In-game auralization: simply launch BGE")
+
 
 # ############################################################
 # Un/Registration
