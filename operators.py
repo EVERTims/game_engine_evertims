@@ -246,6 +246,9 @@ class EVERTimsInEditMode(Operator):
             # remove local callback
             self.handle_remove(context)
 
+            # erase rays from screen
+            context.area.tag_redraw()
+
             return {'CANCELLED'}
 
 
