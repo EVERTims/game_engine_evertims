@@ -275,6 +275,8 @@ class EVERTimsInEditMode(Operator):
         # set debug mode
         self._evertims.setDebugMode(DEBUG_LOG)
 
+        # self._evertims.setBufferSize(4096)
+
         # define EVERTs elements: room, listener and source
         for obj in bpy.context.scene.objects:
             if 'room' in obj.game.properties:
