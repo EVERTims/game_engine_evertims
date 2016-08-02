@@ -58,6 +58,8 @@ import imp
 # EXACT REPEAT OF SCRIPT IN __INIT__.PY UNTIL FOUND A CLEANER WAY
 ignore_change_props_list = (
     "debug_logs_raytracing", "enable_raytracing_client",
+    "raytracing_client_path_to_binary", "raytracing_client_path_to_matFile",
+    "debug_logs_raytracing",
     "enable_edit_mode", "rna_type", "screen_setup", "name", "bl_rna",
     "__dict__", "__doc__", "__module__", "__weakref__"
 )
