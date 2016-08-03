@@ -24,6 +24,8 @@ ignore_change_props_list = (
     "debug_logs_raytracing", "enable_raytracing_client",
     "raytracing_client_path_to_binary", "raytracing_client_path_to_matFile",
     "debug_logs_raytracing",
+    "ip_sound_engine", "port_sound_engine",
+    "min_reflection_order", "min_reflection_order",
     "enable_edit_mode", "rna_type", "screen_setup", "name", "bl_rna",
     "__dict__", "__doc__", "__module__", "__weakref__"
 )
@@ -414,15 +416,18 @@ class EVERTimsRaytracingClient(Operator):
         # start Evertims raytracing client (subprocess)
         if loadType == 'PLAY':
 
-            # get launch command
-            # cmd = "/Users/.../evertims/bin/ims -s 3858 -a 'listener_1/127.0.0.1:3860' -v 'listener_1/localhost:3862' -d 1 -D 2 -m /Users/.../evertims/resources/materials.dat -p 'listener_1/'"
-            client_args = " -s 3858 -a 'listener_1/127.0.0.1:3860' -v 'listener_1/localhost:3862' -d 1 -D 2 -p 'listener_1/'"
-            client_matFile = bpy.path.abspath(evertims.raytracing_client_path_to_matFile)
-            client_args = client_args + " -m " + client_matFile
-            client_bin = bpy.path.abspath(evertims.raytracing_client_path_to_binary)
-            client_cmd = client_bin + client_args
 
-            # TODO: check ims path correct and allow user to define arguments
+            # get launch command out of GUI properties
+            # cmd = "/Users/.../evertims/bin/ims -s 3858 -a 'listener_1/127.0.0.1:3860' -v 'listener_1/localhost:3862' -d 1 -D 2 -m /Users/.../evertims/resources/materials.dat -p 'listener_1/'"
+            client_cmd  = bpy.path.abspath(evertims.raytracing_client_path_to_binary)
+            client_cmd += " -s " + str(evertims.port_write) # reader port
+            client_cmd += " -a " + "listener_1" + "/" + evertims.ip_sound_engine + ":" + str(evertims.port_sound_engine)
+            client_cmd += " -v " + "listener_1" + "/" + evertims.ip_local + ":" + str(evertims.port_read)
+            client_cmd += " -d " + str(evertims.min_reflection_order)
+            client_cmd += " -D " + str(evertims.max_reflection_order)
+            client_cmd += " -p " + "listener_1/ "
+            client_cmd += " -m " + bpy.path.abspath(evertims.raytracing_client_path_to_matFile)
+
 
             # launch subprocess
             EVERTimsRaytracingClient._raytracing_process = subprocess.Popen(client_cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1, close_fds=ON_POSIX)
@@ -431,6 +436,7 @@ class EVERTimsRaytracingClient(Operator):
             # enable log in Blender console if debug mode enabled
             if evertims.debug_logs_raytracing:
                 print('launch EVERTims raytracing client subprocess')
+                print('command: \n', client_cmd)
                 self.handle_add(self, context)
                 return {'RUNNING_MODAL'}
 
@@ -445,7 +451,7 @@ class EVERTimsRaytracingClient(Operator):
             evertims.enable_raytracing_client = False
 
             # terminate log-in-Blender-console related thread if debug mode enabled
-            if evertims.debug_logs_raytracing or self._handle_timer: # (if debug flag unabled while running)
+            if evertims.debug_logs_raytracing or self._handle_timer: # (if debug flag disabled while running)
                 print('terminate EVERTims raytracing client subprocess')
                 self.handle_remove(context)
 

@@ -55,7 +55,7 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
         # line break
         col = layout.column()
 
-        # Define elements
+        # Define KX_GameObjects as EVERTims elements
         col = layout.column()
         col.label("Selected to EVERTims element:")
         rowsub = col.row(align=True)
@@ -90,6 +90,15 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
         colsub = split.column()
         colsub.prop(evertims, "port_write", text="port")
 
+        rowsub = col.row(align=True)
+        rowsub.label("Evert Sound Engine IP adress & port:")
+        rowsub = col.row(align=True)
+        split = rowsub.split(percentage=0.6)
+        colsub = split.column()
+        colsub.prop(evertims, "ip_sound_engine", text="")
+        colsub = split.column()
+        colsub.prop(evertims, "port_sound_engine", text="port")
+
         # line break
         col = layout.column()
         col.label("")
@@ -101,6 +110,16 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
         rowsub.prop(evertims, "raytracing_client_path_to_binary", text="ims")
         rowsub = col.row(align=True)
         rowsub.prop(evertims, "raytracing_client_path_to_matFile", text="mat")
+
+        rowsub = col.row(align=True)
+        rowsub.label("Reflection order:")
+        rowsub = col.row(align=True)
+        split = rowsub.split(percentage=0.5)
+        colsub = split.column()
+        colsub.prop(evertims, "min_reflection_order", text="min")
+        colsub = split.column()
+        colsub.prop(evertims, "max_reflection_order", text="max")
+
         rowsub = col.row(align=True)
         rowsub.prop(evertims, "debug_logs_raytracing", text="print raytracing client logs in console")
         rowsub = col.row(align=True)

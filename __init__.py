@@ -60,6 +60,8 @@ ignore_change_props_list = (
     "debug_logs_raytracing", "enable_raytracing_client",
     "raytracing_client_path_to_binary", "raytracing_client_path_to_matFile",
     "debug_logs_raytracing",
+    "ip_sound_engine", "port_sound_engine",
+    "min_reflection_order", "min_reflection_order",
     "enable_edit_mode", "rna_type", "screen_setup", "name", "bl_rna",
     "__dict__", "__doc__", "__module__", "__weakref__"
 )
@@ -101,21 +103,6 @@ class EVERTimsSettings(PropertyGroup):
             description='Activate real-time update of the EVERTims client from Blender outside the BGE (in casual edit mode)',
             default=False,
             )
-    enable_raytracing_client = BoolProperty(
-            name="Launch EVERTims raytracing client",
-            description='Launch the EVERTims raytracing client as a subprocess (embedded in Blender)',
-            default=False,
-            )
-    raytracing_client_path_to_binary = StringProperty(
-            name="EVERTims Raytracing binary path",
-            description="Path to the ims binary that handles EVERTims raytracing",
-            default="//", maxlen=1024, subtype="FILE_PATH",
-            )
-    raytracing_client_path_to_matFile = StringProperty(
-            name="EVERTims Raytracing material path",
-            description="Path to the .mat file used by the EVERTims raytracing client",
-            default="//", maxlen=1024, subtype="FILE_PATH",
-            )
     debug_logs_raytracing = BoolProperty(
             name="Print Raytracing Logs",
             description='Print raytracing client logs in Blender console',
@@ -131,6 +118,17 @@ class EVERTimsSettings(PropertyGroup):
             name="Print Logs",
             description='Print python logs in Blender console',
             default=False,
+            update=update_evertims_props
+            )
+    movement_threshold_loc = FloatProperty(
+            name="Movement threshold location",
+            description="Minimum value a listener / source must move to be updated on EVERTims client",
+            default=1.0,
+            )
+    movement_threshold_rot = FloatProperty(
+            name="Movement threshold rotation",
+            description="Minimum value a listener / source must rotate to be updated on EVERTims client",
+            default=5.0,
             update=update_evertims_props
             )
     ip_local = StringProperty(
@@ -157,18 +155,45 @@ class EVERTimsSettings(PropertyGroup):
             default=3862,
             update=update_evertims_props
             )
-    movement_threshold_loc = FloatProperty(
-            name="Movement threshold location",
-            description="Minimum value a listener / source must move to be updated on EVERTims client",
-            default=1.0,
-            update=update_evertims_props
+
+    # EVERTims Raytracing client properties
+    enable_raytracing_client = BoolProperty(
+            name="Launch EVERTims raytracing client",
+            description='Launch the EVERTims raytracing client as a subprocess (embedded in Blender)',
+            default=False,
             )
-    movement_threshold_rot = FloatProperty(
-            name="Movement threshold rotation",
-            description="Minimum value a listener / source must rotate to be updated on EVERTims client",
-            default=5.0,
-            update=update_evertims_props
+    ip_sound_engine = StringProperty(
+            name="IP EVERTims Sound Engine",
+            description="IP of the computer running the Evertims Auralization Engine",
+            default="127.0.0.1", maxlen=1024,
             )
+    port_sound_engine = IntProperty(
+            name="Port EVERTims Sound Engine",
+            description="Port for the EVERTimsClient <-> EVERTims Sound Engine connection",
+            default=3860,
+            )
+    raytracing_client_path_to_binary = StringProperty(
+            name="EVERTims Raytracing binary path",
+            description="Path to the ims binary that handles EVERTims raytracing",
+            default="//", maxlen=1024, subtype="FILE_PATH",
+            )
+    raytracing_client_path_to_matFile = StringProperty(
+            name="EVERTims Raytracing material path",
+            description="Path to the .mat file used by the EVERTims raytracing client",
+            default="//", maxlen=1024, subtype="FILE_PATH",
+            )
+    min_reflection_order = IntProperty(
+            name="Min reflection order",
+            description="Min reflection order passed to the embedded EVERTims client",
+            default=1,
+            )
+    max_reflection_order = IntProperty(
+            name="Max reflection order",
+            description="Max reflection order passed to the embedded EVERTims client",
+            default=2,
+            )
+
+
 
 # ############################################################
 # Un/Registration
