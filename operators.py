@@ -548,9 +548,7 @@ class EVERTimsAuralizationClient(Operator):
         if loadType == 'PLAY':
 
             # get launch command out of GUI properties
-            # cmd = "/Users/.../evertims/bin/ims -s 3858 -a 'listener_1/127.0.0.1:3860' -v 'listener_1/localhost:3862' -d 1 -D 2 -m /Users/.../evertims/resources/materials.dat -p 'listener_1/'"
-            # client_cmd  = bpy.path.abspath(evertims.raytracing_client_path_to_binary)
-            client_cmd = "/Users/AstrApple/Projects/EVERTims/evertims-git/juce_evertims/Builds/MacOSX/build/Release/EvertSE.app/Contents/MacOS/EvertSE"
+            client_cmd  = bpy.path.abspath(evertims.auralization_client_path_to_binary)
 
             # launch subprocess
             EVERTimsAuralizationClient._process = subprocess.Popen(client_cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1, close_fds=ON_POSIX)
