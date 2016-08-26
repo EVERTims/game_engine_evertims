@@ -25,7 +25,8 @@ ignore_change_props_list = (
     "raytracing_client_path_to_binary", "raytracing_client_path_to_matFile",
     "debug_logs_raytracing",
     "ip_sound_engine", "port_sound_engine",
-    "min_reflection_order", "min_reflection_order",
+    "enable_auralization_client", "auralization_client_path_to_binary",
+    "min_reflection_order", "max_reflection_order",
     "enable_edit_mode", "rna_type", "screen_setup", "name", "bl_rna",
     "__dict__", "__doc__", "__module__", "__weakref__"
 )
@@ -177,14 +178,44 @@ class EVERTimsSetObject(Operator):
             return {'CANCELLED'}
 
         else:
+            newPropValue = self.getPropValue(loadType)
+            if (loadType == 'room') and newPropValue > 1:
+                self.report({'ERROR'}, 'EVERTims does not support more than single room scenes at the moment')
+                return {'CANCELLED'}
             bpy.ops.object.game_property_new(type='INT', name=loadType)
-            prop = obj.game.properties[loadType]
-            prop.value = 0
+            obj.game.properties[loadType].value = newPropValue
             return {'FINISHED'}
 
+    def getPropValue(self, loadType):
+        """
+        roam scene to check for sources / listeners or rooms present,
+        returns a value that ensures no two EVERTims object of the same
+        type have the same
+        """
+        occupiedValues = []
+        for obj in bpy.context.scene.objects:
+            if loadType in obj.game.properties:
+                occupiedValues.append(obj.game.properties[loadType].value)
+        newVal = 1
+        if not occupiedValues:
+            return 1
+        else:
+            for i in range(max(occupiedValues)+1):
+                index = i + 1
+                if index not in occupiedValues:
+                    newVal = index
+                    break
+        return newVal
+
+
 class EVERTimsInEditMode(Operator):
-    """"""
-    bl_label = ""
+    """
+    Class that handles the 'EVERTims in non BGE Blender' mode. Start / Stop
+    OSC-based communication between Blender and the EVERTims raytracing client,
+    upload room / source / listener informations, download raytracing results
+    as bgl rays rendered in Blender 3Dview.
+    """
+    bl_label = "Enable Blender to EVERTims raytracing client connection in edit mode"
     bl_idname = 'evert.evertims_in_edit_mode'
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -329,11 +360,16 @@ class EVERTimsInEditMode(Operator):
         self._evertims.activateRayTracingFeedback(DEBUG_RAYS)
 
         # check if evertims module is ready to start
+        # print (self._evertims.isReady(), logic_obj, room_obj.material_slots)
         if self._evertims.isReady() and logic_obj:
+            # print('isready', [e for e in room_obj.material_slots])
             if room_obj.material_slots:
+                # print('2')
                 # start EVERTims client
                 if evertims.debug_logs: print ('start simulation...')
+                # print('3')
                 self._evertims.startClientSimulation()
+                # print('4')
                 return True
 
 
@@ -343,9 +379,10 @@ class EVERTimsInEditMode(Operator):
 
 class EVERTimsRaytracingClient(Operator):
     """
-    Class that handles Evertims raytracing client, launched as a subprocess from Blender GUI (in addon pannel)
+    Class that handles the launch (as a subprocess) of the Evertims raytracing
+    client from Blender GUI.
     """
-    bl_label = ""
+    bl_label = "Start / Stop the EVERTims raytracing client from Blender GUI"
     bl_idname = 'evert.evertims_raytracing_client'
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -389,6 +426,8 @@ class EVERTimsRaytracingClient(Operator):
         # indicate it's ok to finish log in stdout thread
         # EVERTimsRaytracingClient._raytracing_debug_log_thread.daemon = False
         EVERTimsRaytracingClient._raytracing_debug_thread_stop_event.set()
+        if context.scene.evertims.debug_logs_raytracing:
+            print('removed raytracing client log callback from modal stack')
 
     @classmethod
     def poll(cls, context):
@@ -405,6 +444,8 @@ class EVERTimsRaytracingClient(Operator):
             out.close()
         else:
             EVERTimsRaytracingClient._raytracing_debug_log_thread.stop()
+            if evertims.debug_logs_raytracing:
+                print('removed raytracing client log callback from modal stack')
 
     def invoke(self, context, event):
         """
@@ -447,7 +488,8 @@ class EVERTimsRaytracingClient(Operator):
         elif loadType == 'STOP':
 
             # terminate subprocess
-            self._raytracing_process.terminate()
+            if self._raytracing_process: # if process has been (e.g. manually) closed since
+                self._raytracing_process.terminate()
             evertims.enable_raytracing_client = False
 
             # terminate log-in-Blender-console related thread if debug mode enabled
@@ -482,6 +524,51 @@ class EVERTimsRaytracingClient(Operator):
         self.handle_remove(context)
 
 
+class EVERTimsAuralizationClient(Operator):
+    """
+    Class that handles the launch (as a subprocess) of the Evertims auralization
+    client from Blender GUI.
+    """
+    bl_label = "Start / Stop the EVERTims auralization client from Blender GUI"
+    bl_idname = 'evert.evertims_auralization_client'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    _process = None
+
+    arg = bpy.props.StringProperty()
+
+    def invoke(self, context, event):
+        """
+        Method called when button attached to local bl_idname clicked
+        """
+        evertims = context.scene.evertims
+        loadType = self.arg
+
+        # start Evertims auralization client (subprocess)
+        if loadType == 'PLAY':
+
+            # get launch command out of GUI properties
+            # cmd = "/Users/.../evertims/bin/ims -s 3858 -a 'listener_1/127.0.0.1:3860' -v 'listener_1/localhost:3862' -d 1 -D 2 -m /Users/.../evertims/resources/materials.dat -p 'listener_1/'"
+            # client_cmd  = bpy.path.abspath(evertims.raytracing_client_path_to_binary)
+            client_cmd = "/Users/AstrApple/Projects/EVERTims/evertims-git/juce_evertims/Builds/MacOSX/build/Release/EvertSE.app/Contents/MacOS/EvertSE"
+
+            # launch subprocess
+            EVERTimsAuralizationClient._process = subprocess.Popen(client_cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1, close_fds=ON_POSIX)
+            evertims.enable_auralization_client = True
+
+            return {'FINISHED'}
+
+        # terminate Evertims raytracing client (subprocess)
+        elif loadType == 'STOP':
+
+            # terminate subprocess
+            if self._process: # if process has been (e.g. manually) closed since
+                self._process.terminate()
+            evertims.enable_auralization_client = False
+
+            return {'CANCELLED'}
+
+
 # ############################################################
 # Un/Registration
 # ############################################################
@@ -490,8 +577,9 @@ classes = (
     EVERTimsImportObject,
     EVERTimsImportText,
     EVERTimsSetObject,
+    EVERTimsInEditMode,
     EVERTimsRaytracingClient,
-    EVERTimsInEditMode
+    EVERTimsAuralizationClient
     )
 
 def register():

@@ -171,6 +171,11 @@ class Evertims():
             and self.connect['port_w'] and self.connect['ip_evert']:
             return True
         else:
+            print('rooms:', self.rooms)
+            print('sources:', self.sources)
+            print('listeners:', self.listeners)
+            print('port_w:', self.connect['port_w'])
+            print('ip_evert:', self.connect['ip_evert'])
             return False
 
     def updateClient(self, objType = ''):

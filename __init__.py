@@ -61,7 +61,8 @@ ignore_change_props_list = (
     "raytracing_client_path_to_binary", "raytracing_client_path_to_matFile",
     "debug_logs_raytracing",
     "ip_sound_engine", "port_sound_engine",
-    "min_reflection_order", "min_reflection_order",
+    "enable_auralization_client", "auralization_client_path_to_binary",
+    "min_reflection_order", "max_reflection_order",
     "enable_edit_mode", "rna_type", "screen_setup", "name", "bl_rna",
     "__dict__", "__doc__", "__module__", "__weakref__"
 )
@@ -173,12 +174,12 @@ class EVERTimsSettings(PropertyGroup):
             default=3860,
             )
     raytracing_client_path_to_binary = StringProperty(
-            name="EVERTims Raytracing binary path",
+            name="EVERTims Raytracing client binary path",
             description="Path to the ims binary that handles EVERTims raytracing",
             default="//", maxlen=1024, subtype="FILE_PATH",
             )
     raytracing_client_path_to_matFile = StringProperty(
-            name="EVERTims Raytracing material path",
+            name="EVERTims Raytracing client material path",
             description="Path to the .mat file used by the EVERTims raytracing client",
             default="//", maxlen=1024, subtype="FILE_PATH",
             )
@@ -193,7 +194,17 @@ class EVERTimsSettings(PropertyGroup):
             default=2,
             )
 
-
+    # EVERTims auralization client properties
+    enable_auralization_client = BoolProperty(
+            name="Launch EVERTims auralization client",
+            description='Launch the EVERTims auralization client as a subprocess (embedded in Blender)',
+            default=False,
+            )
+    auralization_client_path_to_binary = StringProperty(
+            name="EVERTims auralization client binary path",
+            description="Path to the binary that handles EVERTims auralization",
+            default="//", maxlen=1024, subtype="FILE_PATH",
+            )
 
 # ############################################################
 # Un/Registration

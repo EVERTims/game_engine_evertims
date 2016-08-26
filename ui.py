@@ -27,7 +27,6 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
 
         scene = context.scene
         evertims = scene.evertims
-        obj = context.object
 
         layout.enabled = evertims.enable_evertims
 
@@ -98,6 +97,22 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
         colsub.prop(evertims, "ip_sound_engine", text="")
         colsub = split.column()
         colsub.prop(evertims, "port_sound_engine", text="port")
+
+        # line break
+        col = layout.column()
+        col.label("")
+
+        # EVERTims auralization engine setup
+        col = layout.column()
+        col.label("Embedded auralization engine:")
+        rowsub = col.row(align=True)
+        rowsub.prop(evertims, "auralization_client_path_to_binary", text="exe")
+
+        rowsub = col.row(align=True)
+        if not evertims.enable_auralization_client:
+            rowsub.operator("evert.evertims_auralization_client", text="START", icon="RADIOBUT_OFF").arg ='PLAY'
+        else:
+            rowsub.operator("evert.evertims_auralization_client", text="STOP", icon="REC").arg ='STOP'
 
         # line break
         col = layout.column()
