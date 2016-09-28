@@ -218,7 +218,7 @@ class EVERTimsSetObject(Operator):
             if (loadType == 'logic'): 
                 update_evertims_props(self, context)
                 init_evertims_module_path(self, context)
-                
+
             return {'FINISHED'}
 
     def getListOfObjectsWithPropValue(self, propValue):
@@ -387,6 +387,10 @@ class EVERTimsInEditMode(Operator):
         # self._evertims.setBufferSize(4096)
 
         # define EVERTs elements: room, listener and source
+        # 1. reset local dicts if already filled 
+        self._evertims.resetObjDict() 
+        # (in case something changed, don't want to keep old evertims elmt instances)
+        # 2. define new elements
         for obj in bpy.context.scene.objects:
             if 'room' in obj.game.properties:
                 self._evertims.addRoom(obj)

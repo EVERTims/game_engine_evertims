@@ -137,6 +137,14 @@ class Evertims():
         """
         self.listeners[obj.name] = SourceListener(obj, 'listener')
 
+    def resetObjDict(self):
+        """
+        Clear EVERTims listener, Source and Room dictionnaries.
+        """        
+        self.rooms.clear()
+        self.sources.clear()
+        self.listeners.clear()
+
     def initConnection_read(self, ip, port):
         """
         Init EVERTims to Blender connection, used to receive raytracing information.
