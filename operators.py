@@ -16,8 +16,19 @@ except ImportError:
 
 ON_POSIX = 'posix' in sys.builtin_module_names
 # ---------------------------------------------------------------
-
+# ADD PATHS (to evertims python module and asset file)
 ASSET_FILE_NAME = "evertims-assets.blend"
+
+def init_evertims_module_path(self, context):
+    # get addon path
+    current_script_file = os.path.realpath(__file__)
+    current_script_directory = os.path.dirname(current_script_file)
+    addon_path = os.path.join(current_script_directory, 'assets', 'scripts')
+
+    # get logic object
+    obj = context.scene.objects.get('Logic_EVERTims')
+    obj.game.properties['evertims_path'].value = addon_path
+
 # ---------------------------------------------------------------
 # EXACT REPEAT OF SCRIPT IN __INIT__.PY UNTIL FOUND A CLEANER WAY
 ignore_change_props_list = (
@@ -97,7 +108,10 @@ class EVERTimsImportObject(Operator):
 
             obj.select = True
             bpy.context.scene.objects.active = obj
-            update_evertims_props(self, context)
+            # update logic object props if need be (to propagates GUI props to BGE props)
+            if loadType == 'logic' or loadType == 'scene':
+                update_evertims_props(self, context)
+                init_evertims_module_path(self, context)
             return {'FINISHED'}
 
     def loadAsset(self, filename, objList):
@@ -184,6 +198,10 @@ class EVERTimsSetObject(Operator):
                 return {'CANCELLED'}
             bpy.ops.object.game_property_new(type='INT', name=loadType)
             obj.game.properties[loadType].value = newPropValue
+            # update logic object props if need be (to propagates GUI props to BGE props)
+            if (loadType == 'logic'): 
+                update_evertims_props(self, context)
+                init_evertims_module_path(self, context)
             return {'FINISHED'}
 
     def getPropValue(self, loadType):
