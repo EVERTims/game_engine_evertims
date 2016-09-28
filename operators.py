@@ -192,39 +192,76 @@ class EVERTimsSetObject(Operator):
             return {'CANCELLED'}
 
         else:
-            newPropValue = self.getPropValue(loadType)
-            if (loadType == 'room') and newPropValue > 1:
-                self.report({'ERROR'}, 'EVERTims does not support more than single room scenes at the moment')
-                return {'CANCELLED'}
+            # get next available prop value (e.g. listener / source index)
+            occupiedValues = []
+            listOfobjWithSameProp = self.getListOfObjectsWithPropValue(loadType)
+            for objTmp in listOfobjWithSameProp:
+                occupiedValues.append(objTmp.game.properties[loadType].value)
+            newPropValue = self.getNextAvailableInteger(occupiedValues)
+
+            # prior to creation: remove eventual other elmt in scene: all
+            # (evertims only handles single room / listener / source at the moment)
+            # could be implemented in a simpler fashion, yet that way code's ready for:
+            # - room / logic being limited to single instance
+            # - listener / source auto numbering
+            if newPropValue > 1:
+                self.report({'WARNING'}, 'Old EVERTims room will be replaced by selected one')
+                for objTmp in listOfobjWithSameProp:
+                    self.removeGamePropFromObj(objTmp, loadType)
+                    newPropValue = 1
+
+            # add property to object, designating it as evertims element
             bpy.ops.object.game_property_new(type='INT', name=loadType)
             obj.game.properties[loadType].value = newPropValue
+
             # update logic object props if need be (to propagates GUI props to BGE props)
             if (loadType == 'logic'): 
                 update_evertims_props(self, context)
                 init_evertims_module_path(self, context)
+                
             return {'FINISHED'}
 
-    def getPropValue(self, loadType):
+    def getListOfObjectsWithPropValue(self, propValue):
         """
-        roam scene to check for sources / listeners or rooms present,
-        returns a value that ensures no two EVERTims object of the same
-        type have the same
+        roam scene to check for KX_GameObjects with game logic propVvalue
         """
-        occupiedValues = []
+        objList = []
         for obj in bpy.context.scene.objects:
-            if loadType in obj.game.properties:
-                occupiedValues.append(obj.game.properties[loadType].value)
+            if propValue in obj.game.properties:
+                objList.append(obj)
+        return objList
+
+    def getNextAvailableInteger(self, integerList):
+        """
+        roam list of integer, returns the first non-present
+        (starting from 1)
+        """
         newVal = 1
-        if not occupiedValues:
+        if not integerList:
             return 1
         else:
-            for i in range(max(occupiedValues)+1):
+            for i in range(max(integerList)+1):
                 index = i + 1
-                if index not in occupiedValues:
+                if index not in integerList:
                     newVal = index
                     break
         return newVal
 
+    def removeGamePropFromObj(self, obj, propName):
+        """
+        remove game logic property from object
+        """
+        # remember current active object
+        old_obj = bpy.context.scene.objects.active
+        # select object to get access to props editing
+        bpy.context.scene.objects.active = obj
+        # get prop index
+        idx = obj.game.properties.find(propName)
+        # remove property
+        if idx > -1:
+            bpy.ops.object.game_property_remove(idx)
+        # reset old selected object
+        bpy.context.scene.objects.active = old_obj
 
 class EVERTimsInEditMode(Operator):
     """
