@@ -78,6 +78,11 @@ class EVERTimsImportObject(Operator):
 
         loadType = self.arg
 
+        # cancel if simulation is running
+        if context.scene.evertims.enable_edit_mode:
+            self.report({'WARNING'}, 'Cannot import element while simulation is running')
+            return {'CANCELLED'}
+
         # cleanup before we start
         bpy.ops.object.select_all(action='DESELECT')
 
@@ -184,6 +189,11 @@ class EVERTimsSetObject(Operator):
 
         loadType = self.arg
 
+        # cancel if simulation is running
+        if context.scene.evertims.enable_edit_mode:
+            self.report({'WARNING'}, 'Cannot set element while simulation is running')
+            return {'CANCELLED'}
+
         # get active object
         obj = bpy.context.scene.objects.active
 
@@ -205,7 +215,7 @@ class EVERTimsSetObject(Operator):
             # - room / logic being limited to single instance
             # - listener / source auto numbering
             if newPropValue > 1:
-                self.report({'WARNING'}, 'Old EVERTims room will be replaced by selected one')
+                self.report({'INFO'}, 'Old EVERTims room will be replaced by selected one')
                 for objTmp in listOfobjWithSameProp:
                     self.removeGamePropFromObj(objTmp, loadType)
                     newPropValue = 1
