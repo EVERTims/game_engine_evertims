@@ -72,7 +72,7 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
         col = layout.column()
 
         rowsub = col.row(align=True)
-        rowsub.label("Local IP adress & port:")
+        rowsub.label("Blender IP adress & port:")
         rowsub = col.row(align=True)
         split = rowsub.split(percentage=0.6)
         colsub = split.column()
@@ -81,7 +81,7 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
         colsub.prop(evertims, "port_read", text="port")
 
         rowsub = col.row(align=True)
-        rowsub.label("EVERTims IP adress & port:")
+        rowsub.label("Raytracing IP adress & port:")
         rowsub = col.row(align=True)
         split = rowsub.split(percentage=0.6)
         colsub = split.column()
@@ -90,7 +90,7 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
         colsub.prop(evertims, "port_write", text="port")
 
         rowsub = col.row(align=True)
-        rowsub.label("Evert Sound Engine IP adress & port:")
+        rowsub.label("Auralization IP adress & port:")
         rowsub = col.row(align=True)
         split = rowsub.split(percentage=0.6)
         colsub = split.column()
@@ -104,7 +104,7 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
 
         # EVERTims auralization engine setup
         col = layout.column()
-        col.label("Embedded auralization engine:")
+        col.label("Embedded auralization client:")
         rowsub = col.row(align=True)
         rowsub.prop(evertims, "auralization_client_path_to_binary", text="exe")
 

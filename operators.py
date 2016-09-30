@@ -67,8 +67,8 @@ def update_evertims_props(self, context):
 # ---------------------------------------------------------------
 
 class EVERTimsImportObject(Operator):
-    """"""
-    bl_label = "Import an object (KXGameObject, Empty, etc.) from anther .blend file"
+    """Import default EVERTims element (KX_GameObject) into scene"""
+    bl_label = "Import an object (KX_GameObject, Empty, etc.) from anther .blend file"
     bl_idname = 'evert.import_template'
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -138,7 +138,7 @@ class EVERTimsImportObject(Operator):
 
 
 class EVERTimsImportText(Operator):
-    """"""
+    """Import the list of available EVERTims acoustic materials as a text file"""
     bl_label = "Import a text file from anther .blend file"
     bl_idname = 'evert.import_script'
     bl_options = {'REGISTER', 'UNDO'}
@@ -178,7 +178,7 @@ class EVERTimsImportText(Operator):
 
 
 class EVERTimsSetObject(Operator):
-    """"""
+    """Define currently selected object (KX_GameObject) as an EVERTims element"""
     bl_label = "Define a Blender object as an EVERTims element"
     bl_idname = 'evert.set_evert_elmt'
     bl_options = {'REGISTER', 'UNDO'}
@@ -274,13 +274,10 @@ class EVERTimsSetObject(Operator):
         bpy.context.scene.objects.active = old_obj
 
 class EVERTimsInEditMode(Operator):
-    """
-    Class that handles the 'EVERTims in non BGE Blender' mode. Start / Stop
-    OSC-based communication between Blender and the EVERTims raytracing client,
-    upload room / source / listener informations, download raytracing results
-    as bgl rays rendered in Blender 3Dview.
-    """
-    bl_label = "Enable Blender to EVERTims raytracing client connection in edit mode"
+    """Start OSC sync. with EVERTims raytracing client. 
+    Continuous upload of scene info (room, listener, etc.) for auralization and
+    download of raytracing results for visual feedback."""
+    bl_label = "Enable Blender to EVERTims raytracing client connection in edit mode (as opposed to BGE mode)"
     bl_idname = 'evert.evertims_in_edit_mode'
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -378,7 +375,7 @@ class EVERTimsInEditMode(Operator):
 
     def initEvertims(self, context):
         """
-        init the Evertims() class instance, using GUI defined parameters (in evertims add-on pannel)
+        init the Evertims() class instance, using GUI defined parameters (in EVERTims add-on pannel)
         """
         evertims = context.scene.evertims
 
@@ -447,10 +444,7 @@ class EVERTimsInEditMode(Operator):
 
 
 class EVERTimsRaytracingClient(Operator):
-    """
-    Class that handles the launch (as a subprocess) of the Evertims raytracing
-    client from Blender GUI.
-    """
+    """Start the Evertims raytracing client as a subprocess"""
     bl_label = "Start / Stop the EVERTims raytracing client from Blender GUI"
     bl_idname = 'evert.evertims_raytracing_client'
     bl_options = {'REGISTER', 'UNDO'}
@@ -466,7 +460,7 @@ class EVERTimsRaytracingClient(Operator):
     @staticmethod
     def handle_add(self, context):
         """
-        called when starting the Evertims raytracing client with debug mode enabled,
+        called when starting the EVERTims raytracing client with debug mode enabled,
         starts necessary callbacks to output client logs in Blender console.
         """
         # start thread for non-blocking log
@@ -484,7 +478,7 @@ class EVERTimsRaytracingClient(Operator):
     @staticmethod
     def handle_remove(context):
         """
-        called when terminating the Evertims raytracing client with debug mode enabled,
+        called when terminating the EVERTims raytracing client with debug mode enabled,
         remove callbacks added in handle_add method.
         """
         if EVERTimsRaytracingClient._handle_timer is not None:
@@ -505,7 +499,7 @@ class EVERTimsRaytracingClient(Operator):
     def enqueue_output(self, out, queue, stop_event):
         """
         Based on the Queue python module, this callback runs when debug mode enabled,
-        allowing non-blocking print of Evertims raytracing client logs in Blender console.
+        allowing non-blocking print of EVERTims raytracing client logs in Blender console.
         """
         if not stop_event.is_set():
             for line in iter(out.readline, b''):
@@ -594,10 +588,7 @@ class EVERTimsRaytracingClient(Operator):
 
 
 class EVERTimsAuralizationClient(Operator):
-    """
-    Class that handles the launch (as a subprocess) of the Evertims auralization
-    client from Blender GUI.
-    """
+    """Start the EVERTims auralization client as a subprocess"""
     bl_label = "Start / Stop the EVERTims auralization client from Blender GUI"
     bl_idname = 'evert.evertims_auralization_client'
     bl_options = {'REGISTER', 'UNDO'}

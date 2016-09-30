@@ -117,7 +117,7 @@ class EVERTimsSettings(PropertyGroup):
             )
     debug_logs = BoolProperty(
             name="Print Logs",
-            description='Print python logs in Blender console',
+            description='Print logs of the EVERTims python module in Blender console',
             default=False,
             update=update_evertims_props
             )
@@ -140,19 +140,19 @@ class EVERTimsSettings(PropertyGroup):
             )
     ip_client = StringProperty(
             name="IP EVERTims client",
-            description="IP of the computer running EVERTims",
+            description="IP of the computer running the EVERTims raytracing client",
             default="127.0.0.1", maxlen=1024,
             update=update_evertims_props
             )
     port_write = IntProperty(
             name="Port write",
-            description="Port used by EVERTims client to read data sent by the BGE",
+            description="Port used by EVERTims raytracing client to read data sent by the Blender",
             default=3858,
             update=update_evertims_props
             )
     port_read = IntProperty(
             name="Port read",
-            description="Port used by the BGE to read data sent by the EVERTims client",
+            description="Port used by Blender to read data sent by the EVERTims raytracing client",
             default=3862,
             update=update_evertims_props
             )
@@ -164,13 +164,13 @@ class EVERTimsSettings(PropertyGroup):
             default=False,
             )
     ip_sound_engine = StringProperty(
-            name="IP EVERTims Sound Engine",
-            description="IP of the computer running the Evertims Auralization Engine",
+            name="IP EVERTims auralization client",
+            description="IP of the computer running the EVERTims auralization client",
             default="127.0.0.1", maxlen=1024,
             )
     port_sound_engine = IntProperty(
-            name="Port EVERTims Sound Engine",
-            description="Port for the EVERTimsClient <-> EVERTims Sound Engine connection",
+            name="Port EVERTims auralization client",
+            description="Port used by the auralization client to read data sent by the raytracing client",
             default=3860,
             )
     raytracing_client_path_to_binary = StringProperty(
