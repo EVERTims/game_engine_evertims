@@ -20,7 +20,7 @@ bl_info = {
     "name": "EVERTims, real-time auralization framework",
     "author": "David Poirier-Quinot",
     "version": (0, 1),
-    "blender": (2, 7, 6),
+    "blender": (2, 7, 8),
     "location": "3D View > Toolbox",
     "description": "A collection of tools to configure your EVERTims environment.",
     "warning": "",
