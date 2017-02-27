@@ -339,24 +339,25 @@ class EVERTimsInEditMode(Operator):
             # update enable flag
             evertims.enable_edit_mode = False
 
-            # remove nested callback
-            self._evertims.handle_remove()
-
-            # remove local callback
-            self.handle_remove(context)
-
             # erase rays from screen
             context.area.tag_redraw()
 
             return {'CANCELLED'}
 
 
-
     def modal(self, context, event):
         """
         modal method, run always, call cancel function when Blender quit / load new scene
         """
-        if event.type == 'TIMER' and context.scene.evertims.enable_edit_mode:
+        # kill modal
+        if not context.scene.evertims.enable_edit_mode:
+            self.cancel(context)
+
+            # return flag to notify callback managet this callback no longer runs
+            return {'CANCELLED'}
+
+        # execute modal
+        elif event.type == 'TIMER':
             # run evertims internal callbacks
             self._evertims.bpy_modal()
             # force bgl rays redraw (else only redraw rays on user input event)
@@ -370,7 +371,15 @@ class EVERTimsInEditMode(Operator):
         """
         called when Blender quit / load new scene. Remove local callback from stack
         """
+        # remove local callback
         self.handle_remove(context)
+        
+        # remove nested callback
+        self._evertims.handle_remove()
+
+        # erase rays from screen
+        if not context.area is None: 
+            context.area.tag_redraw()
 
 
     def initEvertims(self, context):
