@@ -314,7 +314,7 @@ class Evertims():
 
         # update room (limited to every N frame not to overload EVERTims client)
         self.limit_update_room_update_timer += 1
-        if self.limit_update_room_update_timer > 100:
+        if self.limit_update_room_update_timer > 0: # disabled for now
             self.limit_update_room_update_timer = 0
 
             roomHasChanged = self.updateClient('room')

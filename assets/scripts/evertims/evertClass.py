@@ -399,11 +399,12 @@ class RayManager():
         Callback method.
         Common to BPY and BGE mode
         """
-        # read socket content
+        # read socket content...
         msg = self._readSocket()
-        # add ray to local dict
-        if msg:
+        # ... until socket is empty
+        while msg:
             self._syncRayDict(msg)
+            msg = self._readSocket()
 
     def _pre_draw_bge(self):
         """
