@@ -174,6 +174,7 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
             rowsub.operator("evert.evertims_in_edit_mode", text="START", icon="RADIOBUT_OFF").arg ='PLAY'
         else:
             rowsub.operator("evert.evertims_in_edit_mode", text="STOP", icon="REC").arg ='STOP'
+        col.label("(avoid using undo while running)")
 
         # Auralization in BGE (exact equivalent of pressing "P" over 3D view)
         col = layout.column()
