@@ -566,8 +566,9 @@ class EVERTimsRaytracingClient(Operator):
 
             # terminate log-in-Blender-console related thread if debug mode enabled
             if evertims.debug_logs_raytracing or self._handle_timer: # (if debug flag disabled while running)
-                print('terminate EVERTims raytracing client subprocess')
-                self.handle_remove(context)
+                if self._raytracing_debug_thread_stop_event is not None: # if debug flag added while running
+                    if evertims.debug_logs_raytracing: print('terminate EVERTims raytracing client subprocess')
+                    self.handle_remove(context)
 
             return {'CANCELLED'}
 
