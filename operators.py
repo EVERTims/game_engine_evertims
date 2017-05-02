@@ -250,7 +250,7 @@ class EVERTimsSetObject(Operator):
         if not integerList:
             return 1
         else:
-            for i in range(max(integerList)+1):
+            for i in range(int(max(integerList))+1):
                 index = i + 1
                 if index not in integerList:
                     newVal = index
