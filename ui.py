@@ -1,4 +1,6 @@
 import bpy
+import bpy.utils.previews
+import os
 from bpy.types import Panel
 
 # ############################################################
@@ -20,7 +22,8 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
     def draw_header(self, context):
         # Enable layout
         evertims = context.scene.evertims
-        self.layout.prop(evertims, "enable_evertims", text="Enable Module")
+        self.layout.prop(evertims, "enable_evertims", text="Enable")
+        self.layout.label(text="", icon_value=custom_icons["evertims_icon"].icon_id)
 
     def draw(self, context):
         layout = self.layout
@@ -34,152 +37,131 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
         # ----------------------------------------------
 
         # Import elements
-        col = layout.column()
-        col.label("Import elements:")
-        rowsub = col.row(align=True)
+        box = layout.box()
+        box.label("Import elements", icon='GROUP')
+        rowsub = box.row(align=True)
         rowsub.operator("evert.import_template", text="Template scene", icon='MESH_CUBE').arg = 'scene'
-        rowsub = col.row(align=True)
+        rowsub = box.row(align=True)
         rowsub.operator("evert.import_template", text="Logic", icon='EMPTY_DATA').arg = 'logic'
-        rowsub = col.row(align=True)
+        rowsub = box.row(align=True)
         rowsub.operator("evert.import_template", text="Room & Materials", icon='MESH_CUBE').arg = 'room'
-        rowsub = col.row(align=True)
+        rowsub = box.row(align=True)
         rowsub.operator("evert.import_template", text="Source", icon='MESH_CUBE').arg = 'source'
-        rowsub = col.row(align=True)
+        rowsub = box.row(align=True)
         rowsub.operator("evert.import_template", text="Listener", icon='MESH_CUBE').arg = 'listener'
-        rowsub = col.row(align=True)
+        rowsub = box.row(align=True)
         rowsub.operator("evert.import_script", text="Room materials (.txt)", icon='TEXT').arg = 'materialList'
-        rowsub = col.row(align=True)
+        rowsub = box.row(align=True)
         rowsub.alignment = 'RIGHT'
         rowsub.label("> see Text Editor")
 
-        # line break
-        col = layout.column()
-
         # Define KX_GameObjects as EVERTims elements
-        col = layout.column()
-        col.label("Selected to EVERTims element:")
-        rowsub = col.row(align=True)
+        box = layout.box()
+        box.label("Selected to EVERTims element", icon='PINNED')        
+        rowsub = box.row(align=True)
         rowsub.operator("evert.set_evert_elmt", text="Room", icon='CONSTRAINT').arg = 'room'
-        rowsub = col.row(align=True)
+        rowsub = box.row(align=True)
         rowsub.operator("evert.set_evert_elmt", text="Source", icon='CONSTRAINT').arg = 'source'
-        rowsub = col.row(align=True)
+        rowsub = box.row(align=True)
         rowsub.operator("evert.set_evert_elmt", text="Listener", icon='CONSTRAINT').arg = 'listener'
 
-        # line break
-        col = layout.column()
-        col.label("")
-
         # Network configuration
-        col = layout.column()
+        box = layout.box()
+        box.label("Network", icon='URL')  
 
-        rowsub = col.row(align=True)
+        rowsub = box.row(align=True)
         rowsub.label("Blender IP adress & port:")
-        rowsub = col.row(align=True)
+        rowsub = box.row(align=True)
         split = rowsub.split(percentage=0.6)
         colsub = split.column()
         colsub.prop(evertims, "ip_local", text="")
         colsub = split.column()
         colsub.prop(evertims, "port_read", text="port")
 
-        rowsub = col.row(align=True)
+        rowsub = box.row(align=True)
         rowsub.label("Raytracing IP adress & port:")
-        rowsub = col.row(align=True)
+        rowsub = box.row(align=True)
         split = rowsub.split(percentage=0.6)
         colsub = split.column()
         colsub.prop(evertims, "ip_client", text="")
         colsub = split.column()
         colsub.prop(evertims, "port_write", text="port")
 
-        rowsub = col.row(align=True)
+        rowsub = box.row(align=True)
         rowsub.label("Auralization IP adress & port:")
-        rowsub = col.row(align=True)
+        rowsub = box.row(align=True)
         split = rowsub.split(percentage=0.6)
         colsub = split.column()
         colsub.prop(evertims, "ip_sound_engine", text="")
         colsub = split.column()
         colsub.prop(evertims, "port_sound_engine", text="port")
 
-        # line break
-        col = layout.column()
-        col.label("")
-
         # EVERTims auralization engine setup
-        col = layout.column()
-        col.label("Embedded auralization client:")
-        rowsub = col.row(align=True)
+        box = layout.box()
+        box.label("Embedded auralization client", icon='SPEAKER')         
+        rowsub = box.row(align=True)
         rowsub.prop(addon_prefs, "auralization_client_path_to_binary", text="exe")
 
-        rowsub = col.row(align=True)
+        rowsub = box.row(align=True)
         if not evertims.enable_auralization_client:
             rowsub.operator("evert.evertims_auralization_client", text="START", icon="RADIOBUT_OFF").arg ='PLAY'
         else:
             rowsub.operator("evert.evertims_auralization_client", text="STOP", icon="REC").arg ='STOP'
 
-        # line break
-        col = layout.column()
-        col.label("")
-
         # EVERTims raytracing client setup
-        col = layout.column()
-        col.label("Embedded raytracing client:")
-        rowsub = col.row(align=True)
+        box = layout.box()
+        box.label("Embedded raytracing client", icon='LAMP_AREA')            
+        rowsub = box.row(align=True)
         rowsub.prop(addon_prefs, "raytracing_client_path_to_binary", text="ims")
-        rowsub = col.row(align=True)
+        rowsub = box.row(align=True)
         rowsub.prop(addon_prefs, "raytracing_client_path_to_matFile", text="mat")
 
-        rowsub = col.row(align=True)
+        rowsub = box.row(align=True)
         rowsub.label("Reflection order:")
-        rowsub = col.row(align=True)
+        rowsub = box.row(align=True)
         split = rowsub.split(percentage=0.5)
         colsub = split.column()
         colsub.prop(evertims, "min_reflection_order", text="min")
         colsub = split.column()
         colsub.prop(evertims, "max_reflection_order", text="max")
 
-        rowsub = col.row(align=True)
+        rowsub = box.row(align=True)
         rowsub.prop(evertims, "debug_logs_raytracing", text="print raytracing client logs in console")
-        rowsub = col.row(align=True)
+        rowsub = box.row(align=True)
         if not evertims.enable_raytracing_client:
             rowsub.operator("evert.evertims_raytracing_client", text="START", icon="RADIOBUT_OFF").arg ='PLAY'
         else:
             rowsub.operator("evert.evertims_raytracing_client", text="STOP", icon="REC").arg ='STOP'
 
-        # line break
-        col = layout.column()
-        col.label("")
-
         # Simulation Setup
-        col = layout.column()
+        box = layout.box()
+        box.label("On the fly auralization", icon='QUIT')  
         # col.label("Simulation parameters:")
-        rowsub = col.row(align=True)
+        rowsub = box.row(align=True)
         rowsub.prop(evertims, "debug_rays", text="draw rays in 3DView & BGE")
-        rowsub = col.row(align=True)
+        rowsub = box.row(align=True)
         rowsub.prop(evertims, "debug_logs", text="print local logs in Blender console")
-        rowsub = col.row(align=True)
+        rowsub = box.row(align=True)
         rowsub.label("Movement update threshold:")
-        rowsub = col.row(align=True)
+        rowsub = box.row(align=True)
         split = rowsub.split(percentage=0.5)
         colsub = split.column()
         colsub.prop(evertims, "movement_threshold_loc", text="loc (m)")
         colsub = split.column()
         colsub.prop(evertims, "movement_threshold_rot", text="rot (deg)")
 
-        # line break
-        col = layout.column()
-
         # Auralization in BPY
-        col = layout.column()
-        col.label("On the fly auralization:")
-        rowsub = col.row(align=True)
+        rowsub = box.row(align=True)
         if not evertims.enable_edit_mode:
             rowsub.operator("evert.evertims_in_edit_mode", text="START", icon="RADIOBUT_OFF").arg ='PLAY'
         else:
             rowsub.operator("evert.evertims_in_edit_mode", text="STOP", icon="REC").arg ='STOP'
+        col = box.column()
         col.label("(avoid using undo while running)")
 
         # Auralization in BGE (exact equivalent of pressing "P" over 3D view)
-        col = layout.column()
-        col.label("In-game auralization: simply launch BGE")
+        col = box.column()
+        col.label("(in-game auralization: simply launch BGE)")
 
 
 # ############################################################
@@ -189,5 +171,17 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
 def register():
     bpy.utils.register_class(EVERTimsToolBar)
 
+    # register custom icons
+    global custom_icons
+    custom_icons = bpy.utils.previews.new()
+    currentFilePath = os.path.realpath(__file__)
+    iconsDirPath = os.path.join(os.path.dirname(currentFilePath), "icons")
+    custom_icons.load("evertims_icon", os.path.join(iconsDirPath, "evertims-icon-32x32.png"), 'IMAGE')
+
 def unregister():
     bpy.utils.unregister_class(EVERTimsToolBar)
+
+    # unregister custom icons
+    global custom_icons
+    bpy.utils.previews.remove(custom_icons)
+    bpy.utils.unregister_module(__name__)    
