@@ -45,7 +45,8 @@ else:
             PointerProperty
             )
     from bpy.types import (
-            PropertyGroup
+            PropertyGroup,
+            AddonPreferences
             )
     from . import (
             ui,
@@ -58,10 +59,9 @@ import imp
 # EXACT REPEAT OF SCRIPT IN __INIT__.PY UNTIL FOUND A CLEANER WAY
 ignore_change_props_list = (
     "debug_logs_raytracing", "enable_raytracing_client",
-    "raytracing_client_path_to_binary", "raytracing_client_path_to_matFile",
     "debug_logs_raytracing",
     "ip_sound_engine", "port_sound_engine",
-    "enable_auralization_client", "auralization_client_path_to_binary",
+    "enable_auralization_client",
     "min_reflection_order", "max_reflection_order",
     "enable_edit_mode", "rna_type", "screen_setup", "name", "bl_rna",
     "__dict__", "__doc__", "__module__", "__weakref__"
@@ -173,16 +173,6 @@ class EVERTimsSettings(PropertyGroup):
             description="Port used by the auralization client to read data sent by the raytracing client",
             default=3860,
             )
-    raytracing_client_path_to_binary = StringProperty(
-            name="EVERTims Raytracing client binary path",
-            description="Path to the ims binary that handles EVERTims raytracing",
-            default="//", maxlen=1024, subtype="FILE_PATH",
-            )
-    raytracing_client_path_to_matFile = StringProperty(
-            name="EVERTims Raytracing client material path",
-            description="Path to the .mat file used by the EVERTims raytracing client",
-            default="//", maxlen=1024, subtype="FILE_PATH",
-            )
     min_reflection_order = IntProperty(
             name="Min reflection order",
             description="Min reflection order passed to the embedded EVERTims client",
@@ -200,6 +190,20 @@ class EVERTimsSettings(PropertyGroup):
             description='Launch the EVERTims auralization client as a subprocess (embedded in Blender)',
             default=False,
             )
+
+class EVERTimsPreferences(AddonPreferences):
+    bl_idname = __name__
+
+    raytracing_client_path_to_binary = StringProperty(
+            name="EVERTims Raytracing client binary path",
+            description="Path to the ims binary that handles EVERTims raytracing",
+            default="//", maxlen=1024, subtype="FILE_PATH",
+            )
+    raytracing_client_path_to_matFile = StringProperty(
+            name="EVERTims Raytracing client material path",
+            description="Path to the .mat file used by the EVERTims raytracing client",
+            default="//", maxlen=1024, subtype="FILE_PATH",
+            )
     auralization_client_path_to_binary = StringProperty(
             name="EVERTims auralization client binary path",
             description="Path to the binary that handles EVERTims auralization",
@@ -213,6 +217,7 @@ class EVERTimsSettings(PropertyGroup):
 def register():
 
     bpy.utils.register_class(EVERTimsSettings)
+    bpy.utils.register_class(EVERTimsPreferences)
 
     ui.register()
     operators.register()
@@ -223,6 +228,7 @@ def register():
 def unregister():
 
     bpy.utils.unregister_class(EVERTimsSettings)
+    bpy.utils.unregister_class(EVERTimsPreferences)
 
     ui.unregister()
     operators.unregister()

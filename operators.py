@@ -33,13 +33,12 @@ def init_evertims_module_path(self, context):
 # EXACT REPEAT OF SCRIPT IN __INIT__.PY UNTIL FOUND A CLEANER WAY
 ignore_change_props_list = (
     "debug_logs_raytracing", "enable_raytracing_client",
-    "raytracing_client_path_to_binary", "raytracing_client_path_to_matFile",
     "debug_logs_raytracing",
     "ip_sound_engine", "port_sound_engine",
-    "enable_auralization_client", "auralization_client_path_to_binary",
+    "enable_auralization_client",
     "min_reflection_order", "max_reflection_order",
     "enable_edit_mode", "rna_type", "screen_setup", "name", "bl_rna",
-    "__dict__", "__doc__", "__module__", "__weakref__"
+    "__dict__", "__doc__", "__module__", "__weakref__", "string"
 )
 
 
@@ -524,6 +523,7 @@ class EVERTimsRaytracingClient(Operator):
         Method called when button attached to local bl_idname clicked
         """
         evertims = context.scene.evertims
+        addon_prefs = context.user_preferences.addons[__package__].preferences
         loadType = self.arg
 
         # start Evertims raytracing client (subprocess)
@@ -532,14 +532,14 @@ class EVERTimsRaytracingClient(Operator):
 
             # get launch command out of GUI properties
             # cmd = "/Users/.../evertims/bin/ims -s 3858 -a 'listener_1/127.0.0.1:3860' -v 'listener_1/localhost:3862' -d 1 -D 2 -m /Users/.../evertims/resources/materials.dat -p 'listener_1/'"
-            client_cmd  = bpy.path.abspath(evertims.raytracing_client_path_to_binary)
+            client_cmd  = bpy.path.abspath(addon_prefs.raytracing_client_path_to_binary)
             client_cmd += " -s " + str(evertims.port_write) # reader port
             client_cmd += " -a " + "listener_1" + "/" + evertims.ip_sound_engine + ":" + str(evertims.port_sound_engine)
             client_cmd += " -v " + "listener_1" + "/" + evertims.ip_local + ":" + str(evertims.port_read)
             client_cmd += " -d " + str(evertims.min_reflection_order)
             client_cmd += " -D " + str(evertims.max_reflection_order)
             client_cmd += " -p " + "listener_1/ "
-            client_cmd += " -m " + bpy.path.abspath(evertims.raytracing_client_path_to_matFile)
+            client_cmd += " -m " + bpy.path.abspath(addon_prefs.raytracing_client_path_to_matFile)
 
 
             # launch subprocess
@@ -612,13 +612,14 @@ class EVERTimsAuralizationClient(Operator):
         Method called when button attached to local bl_idname clicked
         """
         evertims = context.scene.evertims
+        addon_prefs = context.user_preferences.addons[__package__].preferences
         loadType = self.arg
 
         # start Evertims auralization client (subprocess)
         if loadType == 'PLAY':
 
             # get launch command out of GUI properties
-            client_cmd  = bpy.path.abspath(evertims.auralization_client_path_to_binary)
+            client_cmd  = bpy.path.abspath(addon_prefs.auralization_client_path_to_binary)
 
             # launch subprocess
             EVERTimsAuralizationClient._process = subprocess.Popen(client_cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1, close_fds=ON_POSIX)

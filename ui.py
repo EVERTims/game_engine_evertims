@@ -27,6 +27,7 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
 
         scene = context.scene
         evertims = scene.evertims
+        addon_prefs = context.user_preferences.addons[__package__].preferences
 
         layout.enabled = evertims.enable_evertims
 
@@ -106,7 +107,7 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
         col = layout.column()
         col.label("Embedded auralization client:")
         rowsub = col.row(align=True)
-        rowsub.prop(evertims, "auralization_client_path_to_binary", text="exe")
+        rowsub.prop(addon_prefs, "auralization_client_path_to_binary", text="exe")
 
         rowsub = col.row(align=True)
         if not evertims.enable_auralization_client:
@@ -122,9 +123,9 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
         col = layout.column()
         col.label("Embedded raytracing client:")
         rowsub = col.row(align=True)
-        rowsub.prop(evertims, "raytracing_client_path_to_binary", text="ims")
+        rowsub.prop(addon_prefs, "raytracing_client_path_to_binary", text="ims")
         rowsub = col.row(align=True)
-        rowsub.prop(evertims, "raytracing_client_path_to_matFile", text="mat")
+        rowsub.prop(addon_prefs, "raytracing_client_path_to_matFile", text="mat")
 
         rowsub = col.row(align=True)
         rowsub.label("Reflection order:")
