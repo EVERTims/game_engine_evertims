@@ -56,10 +56,10 @@ import imp
 
 class EVERTimsSettings(PropertyGroup):
 
-    enable_evertims = BoolProperty(
+    enable_bge = BoolProperty(
             name="Enable EVERTims",
             description='Activate EVERTims module in BGE',
-            default=True,
+            default=False,
             )
     enable_edit_mode = BoolProperty(
             name="Enable EVERTims in EDIT mode",

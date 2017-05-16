@@ -30,7 +30,7 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
         scene = context.scene
         evertims = scene.evertims
         addon_prefs = context.user_preferences.addons[__package__].preferences
-        # layout.enabled = evertims.enable_evertims
+        # layout.enabled = True
 
         # Import elements
         box = layout.box()
@@ -149,16 +149,18 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
         # Auralization in BPY
         rowsub = box.row(align=True)
         if not evertims.enable_edit_mode:
-            rowsub.operator("evert.evertims_in_edit_mode", text="START", icon="RADIOBUT_OFF").arg ='PLAY'
+            rowsub.operator("evert.evertims_in_edit_mode", text="START (bpy mode)", icon="RADIOBUT_OFF").arg ='PLAY'
         else:
-            rowsub.operator("evert.evertims_in_edit_mode", text="STOP", icon="REC").arg ='STOP'
+            rowsub.operator("evert.evertims_in_edit_mode", text="STOP (bpy mode)", icon="REC").arg ='STOP'
         col = box.column()
         col.label("(avoid using undo while running)")
 
-        # Auralization in BGE (exact equivalent of pressing "P" over 3D view)
+        # enable upload data to raytracing client in during BGE session
         rowsub = box.row(align=True)
-        rowsub.prop(evertims, "enable_evertims", text="Enable")
-        rowsub.operator("evert.launch_bge", text="START BGE", icon="NONE")
+        if not evertims.enable_bge:
+            rowsub.operator("evert.evertims_in_bge", text="Enable in BGE", icon="RADIOBUT_OFF").arg ='ENABLE'
+        else:
+            rowsub.operator("evert.evertims_in_bge", text="Enable in BGE", icon="REC").arg ='DISABLE'        
 
 
 # ############################################################

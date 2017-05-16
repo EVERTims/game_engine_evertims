@@ -136,29 +136,39 @@ class EVERTimsImportText(Operator):
         return True
 
 
-class EVERTimsLaunchBge(Operator):
-    """setup and launch EVERTims BGE session"""
-    bl_label = "Launch EVERTims in BGE"
-    bl_idname = 'evert.launch_bge'
+class EVERTimsInBge(Operator):
+    """setup EVERTims for BGE session"""
+    bl_label = "setup EVERTims in BGE"
+    bl_idname = 'evert.evertims_in_bge'
     bl_options = {'REGISTER'}
+
+    arg = bpy.props.StringProperty()
 
     def execute(self, context):
 
+        loadType = self.arg
         evertims = context.scene.evertims
+        logic_obj = bpy.context.scene.objects.get('Logic_EVERTims')
+
+        if loadType == 'ENABLE':
+            # check if evertims setup properly
+            if not evertims.room_object or not evertims.source_object or not evertims.listener_object or not logic_obj:
+                self.report({'ERROR'}, 'Create at least 1 room (with material), 1 listener, 1 source and import EVERTims Logic object')
+                return {'CANCELLED'}    
+            
+            # update logic object properties for in-BGE access
+            self.init_evertims_module_path(context)
+            # update flag
+            evertims.enable_bge = True
+
+        elif loadType == 'DISABLE':
+            # update flag
+            evertims.enable_bge = False
 
         # update logic object properties for in-BGE access
         self.update_evertims_props(context)
-        self.init_evertims_module_path(context)
 
-        # check if evertims setup properly
-        logic_obj = bpy.context.scene.objects.get('Logic_EVERTims')
-        if evertims.room_object and evertims.source_object and evertims.listener_object and logic_obj:
-            # start game engine
-            self.start_game_engine()
-            return {'FINISHED'}
-        else:
-            self.report({'ERROR'}, 'Create at least 1 room (with material), 1 listener, 1 source and import EVERTims Logic object')
-            return {'CANCELLED'}            
+        return {'FINISHED'}
 
     def update_evertims_props(self, context):
 
@@ -173,7 +183,7 @@ class EVERTimsLaunchBge(Operator):
         if obj:
             bpy.context.scene.objects.active = obj
 
-            propList = [ 'enable_evertims', 'debug_logs', 'debug_rays', 'ip_client', 'ip_local', 'movement_threshold_loc', 'movement_threshold_rot', 'port_read', 'port_write', 'room_object', 'source_object', 'listener_object']
+            propList = [ 'enable_bge', 'debug_logs', 'debug_rays', 'ip_client', 'ip_local', 'movement_threshold_loc', 'movement_threshold_rot', 'port_read', 'port_write', 'room_object', 'source_object', 'listener_object']
             # sync. properties (for bge access) with GUI's
             for propName in propList:
                 propValue = eval('evertims.' + propName)
@@ -191,13 +201,8 @@ class EVERTimsLaunchBge(Operator):
 
         # get logic object
         obj = context.scene.objects.get('Logic_EVERTims')
-        if obj: obj.game.properties['evertims_path'].value = addon_path
-
-    def start_game_engine(self):
-        # set render engine mode
-        bpy.context.scene.render.engine = 'BLENDER_GAME'
-        # start game engine
-        bpy.ops.view3d.game_start()
+        if obj: 
+            obj.game.properties['evertims_path'].value = addon_path
 
 
 class EVERTimsInEditMode(Operator):
@@ -586,7 +591,7 @@ class EVERTimsAuralizationClient(Operator):
 classes = (
     EVERTimsImportObject,
     EVERTimsImportText,
-    EVERTimsLaunchBge,
+    EVERTimsInBge,
     EVERTimsInEditMode,
     EVERTimsRaytracingClient,
     EVERTimsAuralizationClient
