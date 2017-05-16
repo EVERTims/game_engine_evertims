@@ -140,7 +140,7 @@ class EVERTimsLaunchBge(Operator):
     """setup and launch EVERTims BGE session"""
     bl_label = "Launch EVERTims in BGE"
     bl_idname = 'evert.launch_bge'
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'REGISTER'}
 
     def execute(self, context):
 
@@ -206,7 +206,7 @@ class EVERTimsInEditMode(Operator):
     download of raytracing results for visual feedback."""
     bl_label = "Enable Blender to EVERTims raytracing client connection in edit mode (as opposed to BGE mode)"
     bl_idname = 'evert.evertims_in_edit_mode'
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'REGISTER'}
 
     arg = bpy.props.StringProperty()
 
@@ -387,7 +387,7 @@ class EVERTimsRaytracingClient(Operator):
     """Start the Evertims raytracing client as a subprocess"""
     bl_label = "Start / Stop the EVERTims raytracing client from Blender GUI"
     bl_idname = 'evert.evertims_raytracing_client'
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'REGISTER'}
 
     _raytracing_process = None
     _raytracing_debug_log_thread = None
@@ -542,7 +542,7 @@ class EVERTimsAuralizationClient(Operator):
     """Start the EVERTims auralization client as a subprocess"""
     bl_label = "Start / Stop the EVERTims auralization client from Blender GUI"
     bl_idname = 'evert.evertims_auralization_client'
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'REGISTER'}
 
     _process = None
 

@@ -83,6 +83,8 @@ class Room():
         :type kx_obj: KX_GameObject
         """
         self.obj = kx_obj
+        # self.objName = kx_obj.name # UNDO related
+
         # TODO: ADD GLOBAL NUMBERING ON '...' PROPERTY (TO AVOID 2 OBJECTS HAVING THE SAME)
         if not 'room' in self.obj:
             self.obj['room'] = 0
@@ -128,7 +130,7 @@ class Room():
             # check for material update
             # DOESN'T WORK IF ONLY CHANGE MATERIAL NAME
             # for e in self.obj.data.materials: print(e, dir(e))
-            if (BLENDER_MODE == 'BPY') and (self.oldMaterialCollection != self.obj.data.materials):
+            if (BLENDER_MODE == 'BPY') and (self.obj.data is not None) and (self.oldMaterialCollection != self.obj.data.materials):
                 self.is_updated = True
                 self.oldMaterialCollection = self.obj.data.materials
             # print('check for room update', self.is_updated)
@@ -195,6 +197,7 @@ class Room():
         obj = self.obj
         mesh = obj.data
         polygonDict = {}          # a dict that holds faces (dict), their vertices (dict: positions and materials)
+        # self._checkForUndoMess()
 
         for n in range (0, len(mesh.polygons)):
             f = mesh.polygons[n] # current face
@@ -231,6 +234,22 @@ class Room():
         osc_msg = '/face ' + str(faceID) + ' ' + matID +  ' ' + pList_string
         return osc_msg
 
+    # def _checkForUndoMess(self):
+    #     """
+    #     Undo (Ctrl + Z, BPY mode only) will cause unpredicted things, e.g. self.obj not being the orignal one 
+    #     as defined in __init__. This method handles this mess. 
+
+    #     :return: boolean, True if mess detected
+    #     """
+    #     try:
+    #         if self.objName != self.obj.name:
+    #             self.obj = bpy.context.scene.objects.get(self.objName)
+    #             return True
+    #     except UnicodeDecodeError:
+    #         self.obj = bpy.context.scene.objects.get(self.objName)
+    #         return True
+    #     return False
+
 class SourceListener():
     """
     Source / Listener object, bridge between the notions of BGE KX_GameObject and EVERTims Listeners / Sources.
@@ -246,6 +265,7 @@ class SourceListener():
         :type typeOfInstance: String
         """
         self.obj = kx_obj
+        # self.objName = kx_obj.name
         self.type = typeOfInstance # either 'source' or 'listener'
         self.old_worldTransform = None
         self.moveThresholdLoc = 0.0
@@ -301,12 +321,29 @@ class SourceListener():
             # obj_type_id = self.obj[self.type] # based on game property
             obj_type_id = 1 # hardcoded for now (limited to a unique self.type then)
         elif BLENDER_MODE == 'BPY':
+            # self._checkForUndoMess()
             world_tranform = self.obj.matrix_world
             # obj_type_id = self.obj.game.properties[self.type].value
             obj_type_id = 1 # hardcoded for now (limited to a unique self.type then)
 
         msg = self._shapeOSCMsg('/' + self.type, self.type + '_' + str(obj_type_id), world_tranform)
         return msg
+
+    # def _checkForUndoMess(self):
+    #     """
+    #     Undo (Ctrl + Z, BPY mode only) will cause unpredicted things, e.g. self.obj not being the orignal one 
+    #     as defined in __init__. This method handles this mess. 
+
+    #     :return: boolean, True if mess detected
+    #     """
+    #     try:
+    #         if self.objName != self.obj.name:
+    #             self.obj = bpy.context.scene.objects.get(self.objName)
+    #             return True
+    #     except UnicodeDecodeError:
+    #         self.obj = bpy.context.scene.objects.get(self.objName)
+    #         return True
+    #     return False
 
     def _shapeOSCMsg(self, header, ID, mat44):
         """
