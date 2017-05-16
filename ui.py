@@ -46,9 +46,7 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
         rowsub = box.row(align=True)
         rowsub.operator("evert.import_template", text="Listener", icon='MESH_CUBE').arg = 'listener'
         rowsub = box.row(align=True)
-        rowsub.operator("evert.import_script", text="Room materials (.txt)", icon='TEXT').arg = 'materialList'
-        rowsub = box.row(align=True)
-        rowsub.alignment = 'RIGHT'
+        rowsub.operator("evert.import_script", text="Materials (.txt)", icon='TEXT').arg = 'materialList'
         rowsub.label("> see Text Editor")
 
         # Define KX_GameObjects as EVERTims elements
