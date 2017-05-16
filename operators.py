@@ -212,6 +212,7 @@ class EVERTimsInEditMode(Operator):
 
     from .assets.scripts.evertims import Evertims
     _evertims = Evertims()
+    _handle_timer = None
 
     @staticmethod
     def handle_add(self, context):
@@ -397,39 +398,45 @@ class EVERTimsRaytracingClient(Operator):
     arg = bpy.props.StringProperty()
 
     @staticmethod
-    def handle_add(self, context):
+    def handle_add(self, context, debugEnabled):
         """
-        called when starting the EVERTims raytracing client with debug mode enabled,
+        called when starting the EVERTims raytracing client,
         starts necessary callbacks to output client logs in Blender console.
+        called even if debug mode disabled, the modal then runs uselessly yet we're sure
+        that the self.cancel method is called if blender is closed, hence giving us a handle to kill
+        the evertims ims sub process.
         """
         # start thread for non-blocking log
-        EVERTimsRaytracingClient._raytracing_debug_log_queue = Queue()
-        EVERTimsRaytracingClient._raytracing_debug_thread_stop_event = threading.Event() # used to stop the thread
-        EVERTimsRaytracingClient._raytracing_debug_log_thread = threading.Thread(target=self.enqueue_output, args=(self._raytracing_process.stdout, EVERTimsRaytracingClient._raytracing_debug_log_queue, EVERTimsRaytracingClient._raytracing_debug_thread_stop_event))
-        EVERTimsRaytracingClient._raytracing_debug_log_thread.daemon = True # thread dies with the program
-        EVERTimsRaytracingClient._raytracing_debug_log_thread.start()
+        if debugEnabled:
+            EVERTimsRaytracingClient._raytracing_debug_log_queue = Queue()
+            EVERTimsRaytracingClient._raytracing_debug_thread_stop_event = threading.Event() # used to stop the thread
+            EVERTimsRaytracingClient._raytracing_debug_log_thread = threading.Thread(target=self.enqueue_output, args=(self._raytracing_process.stdout, EVERTimsRaytracingClient._raytracing_debug_log_queue, EVERTimsRaytracingClient._raytracing_debug_thread_stop_event))
+            EVERTimsRaytracingClient._raytracing_debug_log_thread.daemon = True # thread dies with the program
+            EVERTimsRaytracingClient._raytracing_debug_log_thread.start()
 
         # start modal
         context.window_manager.modal_handler_add(self)
         EVERTimsRaytracingClient._handle_timer = context.window_manager.event_timer_add(0.075,  context.window)
-        if context.scene.evertims.debug_logs: print('added evertims raytracing log callback to draw_handler')
+        if context.scene.evertims.debug_logs: print('added evertims raytracing modal callback to draw_handler')
 
     @staticmethod
     def handle_remove(context):
         """
-        called when terminating the EVERTims raytracing client with debug mode enabled,
+        called when terminating the EVERTims raytracing client,
         remove callbacks added in handle_add method.
         """
-        if EVERTimsRaytracingClient._handle_timer is not None:
-            # kill modal
-            context.window_manager.event_timer_remove(EVERTimsRaytracingClient._handle_timer)
-            EVERTimsRaytracingClient._handle_timer = None
-            # context.window_manager.modal_handler_add(self)
+        # skip if somehow this runs while handle time not defined in handle_add
+        if EVERTimsRaytracingClient._handle_timer is None: return
+        # kill modal
+        context.window_manager.event_timer_remove(EVERTimsRaytracingClient._handle_timer)
+        EVERTimsRaytracingClient._handle_timer = None
+        # context.window_manager.modal_handler_add(self)
         # indicate it's ok to finish log in stdout thread
         # EVERTimsRaytracingClient._raytracing_debug_log_thread.daemon = False
-        EVERTimsRaytracingClient._raytracing_debug_thread_stop_event.set()
+        if EVERTimsRaytracingClient._raytracing_debug_thread_stop_event is not None:
+            EVERTimsRaytracingClient._raytracing_debug_thread_stop_event.set()
         if context.scene.evertims.debug_logs_raytracing:
-            print('removed raytracing client log callback from modal stack')
+            print('removed raytracing modal callback from modal stack')
 
     @classmethod
     def poll(cls, context):
@@ -481,11 +488,8 @@ class EVERTimsRaytracingClient(Operator):
             if evertims.debug_logs_raytracing:
                 print('launch EVERTims raytracing client subprocess')
                 print('command: \n', client_cmd)
-                self.handle_add(self, context)
-                return {'RUNNING_MODAL'}
-
-            else:
-                return {'FINISHED'}
+            self.handle_add(self, context, evertims.debug_logs_raytracing)
+            return {'RUNNING_MODAL'}
 
         # terminate Evertims raytracing client (subprocess)
         elif loadType == 'STOP':
@@ -495,11 +499,13 @@ class EVERTimsRaytracingClient(Operator):
                 self._raytracing_process.terminate()
             evertims.enable_raytracing_client = False
 
-            # terminate log-in-Blender-console related thread if debug mode enabled
-            if evertims.debug_logs_raytracing or self._handle_timer: # (if debug flag disabled while running)
-                if self._raytracing_debug_thread_stop_event is not None: # if debug flag added while running
-                    if evertims.debug_logs_raytracing: print('terminate EVERTims raytracing client subprocess')
+            # terminate modal thread
+            if self._handle_timer: 
+                if self._raytracing_debug_thread_stop_event is not None: # debug enabled
                     self.handle_remove(context)
+                else:
+                    self.handle_remove(context)
+                if evertims.debug_logs_raytracing: print('terminate EVERTims raytracing client subprocess')
 
             return {'CANCELLED'}
 
@@ -508,8 +514,8 @@ class EVERTimsRaytracingClient(Operator):
         """
         modal method, run always, call cancel function when Blender quit / load new scene
         """
-
-        if event.type == 'TIMER':
+        # useful only if debug mode not enabled      
+        if event.type == 'TIMER' and EVERTimsRaytracingClient._raytracing_debug_log_queue is not None:
             try:
                 # get line from non-blocking Queue, attached to debug-log thread
                 line = EVERTimsRaytracingClient._raytracing_debug_log_queue.get_nowait() # or q.get(timeout=.1)
@@ -525,6 +531,10 @@ class EVERTimsRaytracingClient(Operator):
         """
         function called when Blender quit / load new scene. Remove local callback from stack
         """
+        # kill ims process if blender exit while modal still running
+        if self._raytracing_process: # if process has been (e.g. manually) closed since
+            self._raytracing_process.terminate()
+        # remove modal 
         self.handle_remove(context)
 
 
