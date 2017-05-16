@@ -13,19 +13,22 @@ See the Installation section of the website.
 The addon is a wrapper around the ```evertims``` python module. The module holds classes to communicate room, listener(s) and source(s) properties (geometry, materials, position, etc.) to the EVERTims ray-tracing client (main program running image sources simulation, see website). The addon allows to use the module for real-time auralization of a Blender scene during its design (edit mode) and exploration (BGE). 
 
 addon wrapper files:
-├── \__init\__.py
+```
+├── __init__.py
 ├── operators.py
 └── ui.py
+```
 
 ```evertims``` module files:
+```
 ├── assets
-│   ├── evertims-assets.blend _(example how to use scene + ready to import assets)_
+│   ├── evertims-assets.blend (example how to use scene + ready to import assets)
 │   ├── scripts
 │   │   ├── evertims
-│   │   │   ├── \__init\__.py
+│   │   │   ├── __init__.py
 │   │   │   └── evertClass.py
-│   │   └── run-evertims.py _(example how to use bge script)_
-
+│   │   └── run-evertims.py (example how to use bge script)
+```
 
 ## How to use: Standalone python module
 
