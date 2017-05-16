@@ -84,12 +84,12 @@ class EVERTimsSettings(PropertyGroup):
     movement_threshold_loc = FloatProperty(
             name="Movement threshold location",
             description="Minimum value a listener / source must move to be updated on EVERTims client",
-            default=1.0,
+            default=0.1,
             )
     movement_threshold_rot = FloatProperty(
             name="Movement threshold rotation",
             description="Minimum value a listener / source must rotate to be updated on EVERTims client",
-            default=5.0,
+            default=1,
             )
     ip_local = StringProperty(
             name="IP local",
