@@ -15,55 +15,8 @@ except ImportError:
     from queue import Queue, Empty  # python 3.x
 
 ON_POSIX = 'posix' in sys.builtin_module_names
-# ---------------------------------------------------------------
-# ADD PATHS (to evertims python module and asset file)
 ASSET_FILE_NAME = "evertims-assets.blend"
 
-def init_evertims_module_path(self, context):
-    # get addon path
-    current_script_file = os.path.realpath(__file__)
-    current_script_directory = os.path.dirname(current_script_file)
-    addon_path = os.path.join(current_script_directory, 'assets', 'scripts')
-
-    # get logic object
-    obj = context.scene.objects.get('Logic_EVERTims')
-    obj.game.properties['evertims_path'].value = addon_path
-
-# ---------------------------------------------------------------
-# EXACT REPEAT OF SCRIPT IN __INIT__.PY UNTIL FOUND A CLEANER WAY
-ignore_change_props_list = (
-    "debug_logs_raytracing", "enable_raytracing_client",
-    "debug_logs_raytracing",
-    "ip_sound_engine", "port_sound_engine",
-    "enable_auralization_client",
-    "min_reflection_order", "max_reflection_order",
-    "enable_edit_mode", "rna_type", "screen_setup", "name", "bl_rna",
-    "__dict__", "__doc__", "__module__", "__weakref__", "string"
-)
-
-
-def update_evertims_props(self, context):
-    scene = context.scene
-    evertims = scene.evertims
-
-    # remember current active object
-    old_obj = bpy.context.scene.objects.active
-
-    # get logic object
-    obj = bpy.context.scene.objects.get('Logic_EVERTims')
-
-    if obj:
-        bpy.context.scene.objects.active = obj
-
-        # sync. properties (for bge access) with GUI's
-        for propName in dir(evertims):
-            if not propName in ignore_change_props_list:
-                propValue = eval('evertims.' + propName)
-                obj.game.properties[propName].value = propValue
-
-    # reset old active object
-    bpy.context.scene.objects.active = old_obj
-# ---------------------------------------------------------------
 
 class EVERTimsImportObject(Operator):
     """Import default EVERTims element (KX_GameObject) into scene"""
@@ -76,9 +29,10 @@ class EVERTimsImportObject(Operator):
     def execute(self, context):
 
         loadType = self.arg
+        evertims = context.scene.evertims
 
         # cancel if simulation is running
-        if context.scene.evertims.enable_edit_mode:
+        if evertims.enable_edit_mode:
             self.report({'WARNING'}, 'Cannot import element while simulation is running')
             return {'CANCELLED'}
 
@@ -90,20 +44,30 @@ class EVERTimsImportObject(Operator):
         obj = None
 
         if loadType == 'scene':
-            obj = self.loadAsset(filename, ('Logic_EVERTims', 'Room', 'Source', 'Listener_Rotate', 'Listener'))
+            # load each object separately for access to resulting obj.name
+            obj = self.loadAsset(filename, ('Room'))
+            evertims.room_object = obj.name
+            obj = self.loadAsset(filename, ('Source'))
+            evertims.source_object = obj.name
+            obj = self.loadAsset(filename, ('Listener_Rotate', 'Listener'))
+            evertims.listener_object = obj.name
+            # load others
+            self.loadAsset(filename, ('Logic_EVERTims'))
 
         if loadType == 'logic':
             obj = self.loadAsset(filename, ('Logic_EVERTims'))
 
-
         if loadType == 'room':
             obj = self.loadAsset(filename, ('Room'))
+            evertims.room_object = obj.name
 
         if loadType == 'source':
             obj = self.loadAsset(filename, ('Source'))
+            evertims.source_object = obj.name
 
         if loadType == 'listener':
             obj = self.loadAsset(filename, ('Listener_Rotate', 'Listener'))
+            evertims.listener_object = obj.name
 
         if not obj:
             self.report({'ERROR'}, 'something went wrong')
@@ -112,10 +76,6 @@ class EVERTimsImportObject(Operator):
 
             obj.select = True
             bpy.context.scene.objects.active = obj
-            # update logic object props if need be (to propagates GUI props to BGE props)
-            if loadType == 'logic' or loadType == 'scene':
-                update_evertims_props(self, context)
-                init_evertims_module_path(self, context)
             return {'FINISHED'}
 
     def loadAsset(self, filename, objList):
@@ -176,101 +136,69 @@ class EVERTimsImportText(Operator):
         return True
 
 
-class EVERTimsSetObject(Operator):
-    """Define currently selected object (KX_GameObject) as an EVERTims element"""
-    bl_label = "Define a Blender object as an EVERTims element"
-    bl_idname = 'evert.set_evert_elmt'
+class EVERTimsLaunchBge(Operator):
+    """setup and launch EVERTims BGE session"""
+    bl_label = "Launch EVERTims in BGE"
+    bl_idname = 'evert.launch_bge'
     bl_options = {'REGISTER', 'UNDO'}
-
-    arg = bpy.props.StringProperty()
 
     def execute(self, context):
 
-        loadType = self.arg
+        evertims = context.scene.evertims
 
-        # cancel if simulation is running
-        if context.scene.evertims.enable_edit_mode:
-            self.report({'WARNING'}, 'Cannot set element while simulation is running')
-            return {'CANCELLED'}
+        # update logic object properties for in-BGE access
+        self.update_evertims_props(context)
+        self.init_evertims_module_path(context)
 
-        # get active object
-        obj = bpy.context.scene.objects.active
-
-        if not obj:
-            self.report({'ERROR'}, 'select an object')
-            return {'CANCELLED'}
-
-        else:
-            # get next available prop value (e.g. listener / source index)
-            occupiedValues = []
-            listOfobjWithSameProp = self.getListOfObjectsWithPropValue(loadType)
-            for objTmp in listOfobjWithSameProp:
-                occupiedValues.append(objTmp.game.properties[loadType].value)
-            newPropValue = self.getNextAvailableInteger(occupiedValues)
-
-            # prior to creation: remove eventual other elmt in scene: all
-            # (evertims only handles single room / listener / source at the moment)
-            # could be implemented in a simpler fashion, yet that way code's ready for:
-            # - room / logic being limited to single instance
-            # - listener / source auto numbering
-            if newPropValue > 1:
-                self.report({'INFO'}, 'Old EVERTims room will be replaced by selected one')
-                for objTmp in listOfobjWithSameProp:
-                    self.removeGamePropFromObj(objTmp, loadType)
-                    newPropValue = 1
-
-            # add property to object, designating it as evertims element
-            bpy.ops.object.game_property_new(type='INT', name=loadType)
-            obj.game.properties[loadType].value = newPropValue
-
-            # update logic object props if need be (to propagates GUI props to BGE props)
-            if (loadType == 'logic'): 
-                update_evertims_props(self, context)
-                init_evertims_module_path(self, context)
-
+        # check if evertims setup properly
+        logic_obj = bpy.context.scene.objects.get('Logic_EVERTims')
+        if evertims.room_object and evertims.source_object and evertims.listener_object and logic_obj:
+            # start game engine
+            self.start_game_engine()
             return {'FINISHED'}
-
-    def getListOfObjectsWithPropValue(self, propValue):
-        """
-        roam scene to check for KX_GameObjects with game logic propVvalue
-        """
-        objList = []
-        for obj in bpy.context.scene.objects:
-            if propValue in obj.game.properties:
-                objList.append(obj)
-        return objList
-
-    def getNextAvailableInteger(self, integerList):
-        """
-        roam list of integer, returns the first non-present
-        (starting from 1)
-        """
-        newVal = 1
-        if not integerList:
-            return 1
         else:
-            for i in range(max(integerList)+1):
-                index = i + 1
-                if index not in integerList:
-                    newVal = index
-                    break
-        return newVal
+            self.report({'ERROR'}, 'Create at least 1 room (with material), 1 listener, 1 source and import EVERTims Logic object')
+            return {'CANCELLED'}            
 
-    def removeGamePropFromObj(self, obj, propName):
-        """
-        remove game logic property from object
-        """
+    def update_evertims_props(self, context):
+
+        evertims = context.scene.evertims
+
         # remember current active object
         old_obj = bpy.context.scene.objects.active
-        # select object to get access to props editing
-        bpy.context.scene.objects.active = obj
-        # get prop index
-        idx = obj.game.properties.find(propName)
-        # remove property
-        if idx > -1:
-            bpy.ops.object.game_property_remove(idx)
-        # reset old selected object
-        bpy.context.scene.objects.active = old_obj
+
+        # get logic object
+        obj = bpy.context.scene.objects.get('Logic_EVERTims')
+
+        if obj:
+            bpy.context.scene.objects.active = obj
+
+            propList = [ 'enable_evertims', 'debug_logs', 'debug_rays', 'ip_client', 'ip_local', 'movement_threshold_loc', 'movement_threshold_rot', 'port_read', 'port_write', 'room_object', 'source_object', 'listener_object']
+            # sync. properties (for bge access) with GUI's
+            for propName in propList:
+                propValue = eval('evertims.' + propName)
+                obj.game.properties[propName].value = propValue
+
+        # reset old active object
+        bpy.context.scene.objects.active = old_obj        
+
+    def init_evertims_module_path(self, context):
+
+        # get add-on path
+        current_script_file = os.path.realpath(__file__)
+        current_script_directory = os.path.dirname(current_script_file)
+        addon_path = os.path.join(current_script_directory, 'assets', 'scripts')
+
+        # get logic object
+        obj = context.scene.objects.get('Logic_EVERTims')
+        if obj: obj.game.properties['evertims_path'].value = addon_path
+
+    def start_game_engine(self):
+        # set render engine mode
+        bpy.context.scene.render.engine = 'BLENDER_GAME'
+        # start game engine
+        bpy.ops.view3d.game_start()
+
 
 class EVERTimsInEditMode(Operator):
     """Start OSC sync. with EVERTims raytracing client. 
@@ -352,7 +280,7 @@ class EVERTimsInEditMode(Operator):
         if not context.scene.evertims.enable_edit_mode:
             self.cancel(context)
 
-            # return flag to notify callback managet this callback no longer runs
+            # return flag to notify callback manager that this callback is no longer running
             return {'CANCELLED'}
 
         # execute modal
@@ -406,16 +334,19 @@ class EVERTimsInEditMode(Operator):
         self._evertims.resetObjDict() 
         # (in case something changed, don't want to keep old evertims elmt instances)
         # 2. define new elements
-        for obj in bpy.context.scene.objects:
-            if 'room' in obj.game.properties:
-                self._evertims.addRoom(obj)
-                if evertims.debug_logs: print('adding room: ', obj.name)
-            if 'source' in obj.game.properties:
-                self._evertims.addSource(obj)
-                if evertims.debug_logs: print('adding source: ', obj.name)
-            if 'listener' in obj.game.properties:
-                self._evertims.addListener(obj)
-                if evertims.debug_logs: print('adding listener: ', obj.name)
+        objects = bpy.context.scene.objects
+        # add room
+        obj = objects.get(evertims.room_object)
+        if obj: self._evertims.addRoom(obj)
+        if evertims.debug_logs: print('adding room: ', obj.name)
+        # add source
+        obj = objects.get(evertims.source_object)
+        if obj: self._evertims.addSource(obj)
+        if evertims.debug_logs: print('adding source: ', obj.name)
+        # add listener
+        obj = objects.get(evertims.listener_object)
+        if obj: self._evertims.addListener(obj)
+        if evertims.debug_logs: print('adding listener: ', obj.name)
 
         # get logic object
         logic_obj = bpy.context.scene.objects.get('Logic_EVERTims')
@@ -426,7 +357,7 @@ class EVERTimsInEditMode(Operator):
         # limit listener / source position updates in EVERTims Client
         self._evertims.setMovementUpdateThreshold(MOVE_UPDATE_THRESHOLD_VALUE_LOC, MOVE_UPDATE_THRESHOLD_VALUE_ROT)
 
-        # init newtork connections
+        # init network connections
         self._evertims.initConnection_write(IP_EVERT, PORT_W)
         self._evertims.initConnection_read(IP_LOCAL, PORT_R)
 
@@ -645,7 +576,7 @@ class EVERTimsAuralizationClient(Operator):
 classes = (
     EVERTimsImportObject,
     EVERTimsImportText,
-    EVERTimsSetObject,
+    EVERTimsLaunchBge,
     EVERTimsInEditMode,
     EVERTimsRaytracingClient,
     EVERTimsAuralizationClient

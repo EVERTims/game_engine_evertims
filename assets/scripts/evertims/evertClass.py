@@ -298,10 +298,12 @@ class SourceListener():
         """
         if BLENDER_MODE == 'BGE':
             world_tranform = self.obj.worldTransform
-            obj_type_id = self.obj[self.type]
+            # obj_type_id = self.obj[self.type] # based on game property
+            obj_type_id = 1 # hardcoded for now (limited to a unique self.type then)
         elif BLENDER_MODE == 'BPY':
             world_tranform = self.obj.matrix_world
-            obj_type_id = self.obj.game.properties[self.type].value
+            # obj_type_id = self.obj.game.properties[self.type].value
+            obj_type_id = 1 # hardcoded for now (limited to a unique self.type then)
 
         msg = self._shapeOSCMsg('/' + self.type, self.type + '_' + str(obj_type_id), world_tranform)
         return msg

@@ -22,7 +22,6 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
     def draw_header(self, context):
         # Enable layout
         evertims = context.scene.evertims
-        self.layout.prop(evertims, "enable_evertims", text="Enable")
         self.layout.label(text="", icon_value=custom_icons["evertims_icon"].icon_id)
 
     def draw(self, context):
@@ -31,10 +30,7 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
         scene = context.scene
         evertims = scene.evertims
         addon_prefs = context.user_preferences.addons[__package__].preferences
-
-        layout.enabled = evertims.enable_evertims
-
-        # ----------------------------------------------
+        # layout.enabled = evertims.enable_evertims
 
         # Import elements
         box = layout.box()
@@ -57,13 +53,13 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
 
         # Define KX_GameObjects as EVERTims elements
         box = layout.box()
-        box.label("Selected to EVERTims element", icon='PINNED')        
-        rowsub = box.row(align=True)
-        rowsub.operator("evert.set_evert_elmt", text="Room", icon='CONSTRAINT').arg = 'room'
-        rowsub = box.row(align=True)
-        rowsub.operator("evert.set_evert_elmt", text="Source", icon='CONSTRAINT').arg = 'source'
-        rowsub = box.row(align=True)
-        rowsub.operator("evert.set_evert_elmt", text="Listener", icon='CONSTRAINT').arg = 'listener'
+        box.label("Define as EVERTims element", icon='PINNED')        
+        col = box.column(align=True)
+        col.prop_search(evertims, "room_object", bpy.data, "objects")
+        col = box.column(align=True)
+        col.prop_search(evertims, "listener_object", bpy.data, "objects")
+        col = box.column(align=True)
+        col.prop_search(evertims, "source_object", bpy.data, "objects")
 
         # Network configuration
         box = layout.box()
@@ -160,8 +156,9 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
         col.label("(avoid using undo while running)")
 
         # Auralization in BGE (exact equivalent of pressing "P" over 3D view)
-        col = box.column()
-        col.label("(in-game auralization: simply launch BGE)")
+        rowsub = box.row(align=True)
+        rowsub.prop(evertims, "enable_evertims", text="Enable")
+        rowsub.operator("evert.launch_bge", text="START BGE", icon="NONE")
 
 
 # ############################################################

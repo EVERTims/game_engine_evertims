@@ -54,50 +54,12 @@ else:
             )
 import imp
 
-
-# ---------------------------------------------------------------
-# EXACT REPEAT OF SCRIPT IN __INIT__.PY UNTIL FOUND A CLEANER WAY
-ignore_change_props_list = (
-    "debug_logs_raytracing", "enable_raytracing_client",
-    "debug_logs_raytracing",
-    "ip_sound_engine", "port_sound_engine",
-    "enable_auralization_client",
-    "min_reflection_order", "max_reflection_order",
-    "enable_edit_mode", "rna_type", "screen_setup", "name", "bl_rna",
-    "__dict__", "__doc__", "__module__", "__weakref__"
-)
-
-def update_evertims_props(self, context):
-    scene = context.scene
-    evertims = scene.evertims
-
-    # remember current active object
-    old_obj = bpy.context.scene.objects.active
-
-    # get logic object
-    obj = bpy.context.scene.objects.get('Logic_EVERTims')
-
-    if obj:
-        bpy.context.scene.objects.active = obj
-
-        # sync. properties (for bge access) with GUI's
-        for propName in dir(evertims):
-            if not propName in ignore_change_props_list:
-                propValue = eval('evertims.' + propName)
-                obj.game.properties[propName].value = propValue
-
-    # reset old active object
-    if old_obj:
-        bpy.context.scene.objects.active = old_obj
-# ---------------------------------------------------------------
-
 class EVERTimsSettings(PropertyGroup):
 
     enable_evertims = BoolProperty(
             name="Enable EVERTims",
             description='Activate EVERTims module in BGE',
             default=True,
-            update=update_evertims_props
             )
     enable_edit_mode = BoolProperty(
             name="Enable EVERTims in EDIT mode",
@@ -113,13 +75,11 @@ class EVERTimsSettings(PropertyGroup):
             name="Draw Rays",
             description='Enable visual feedback on EVERTims ratracing in Blender',
             default=True,
-            update=update_evertims_props
             )
     debug_logs = BoolProperty(
             name="Print Logs",
             description='Print logs of the EVERTims python module in Blender console',
             default=False,
-            update=update_evertims_props
             )
     movement_threshold_loc = FloatProperty(
             name="Movement threshold location",
@@ -130,31 +90,26 @@ class EVERTimsSettings(PropertyGroup):
             name="Movement threshold rotation",
             description="Minimum value a listener / source must rotate to be updated on EVERTims client",
             default=5.0,
-            update=update_evertims_props
             )
     ip_local = StringProperty(
             name="IP local",
             description="IP of the computer running Blender",
             default="127.0.0.1", maxlen=1024,
-            update=update_evertims_props
             )
     ip_client = StringProperty(
             name="IP EVERTims client",
             description="IP of the computer running the EVERTims raytracing client",
             default="127.0.0.1", maxlen=1024,
-            update=update_evertims_props
             )
     port_write = IntProperty(
             name="Port write",
             description="Port used by EVERTims raytracing client to read data sent by the Blender",
             default=3858,
-            update=update_evertims_props
             )
     port_read = IntProperty(
             name="Port read",
             description="Port used by Blender to read data sent by the EVERTims raytracing client",
             default=3862,
-            update=update_evertims_props
             )
 
     # EVERTims Raytracing client properties
@@ -190,6 +145,28 @@ class EVERTimsSettings(PropertyGroup):
             description='Launch the EVERTims auralization client as a subprocess (embedded in Blender)',
             default=False,
             )
+
+    # EVERTims elements
+    room_object = StringProperty(
+            name="Room",
+            description="Current room selected for auralization",
+            default="", maxlen=1024,
+            ) 
+    listener_object = StringProperty(
+            name="Listener",
+            description="Current listener selected for auralization",
+            default="", maxlen=1024,
+            ) 
+    source_object = StringProperty(
+            name="Source",
+            description="Current source selected for auralization",
+            default="", maxlen=1024,
+            )     
+    mat_list = StringProperty(
+            name="Material List",
+            description="A string of all available materials, displayed in GUI",
+            default="(need refresh)", maxlen=2048,
+            ) 
 
 class EVERTimsPreferences(AddonPreferences):
     bl_idname = __name__
