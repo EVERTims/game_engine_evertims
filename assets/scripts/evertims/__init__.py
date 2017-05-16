@@ -266,6 +266,9 @@ class Evertims():
             managedToConnect = False
             if self.connect['ip_local'] and self.connect['port_r']:
 
+                # close eventual old socket (e.g. undo that badly resets the on the fly auralization)
+                if self.connect['socket'] is not None: self.connect['socket'].close()
+                
                 # init receive socket
                 (self.connect['socket'], isConnected) = self._getOscSocket(self.connect['ip_local'], self.connect['port_r'])
                 if isConnected:
