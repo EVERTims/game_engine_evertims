@@ -1,4 +1,4 @@
-# Blender (BGE) addon of the EVERTims project
+# Blender addon of the EVERTims project
 
 Add the EVERTims GUI panel to Blender tool bar, used to setup EVERTims scenes for real-time auralization during both room design (in edit mode) and exploration (using the blender game engine). See the [EVERTims website](https://evertims.github.io) for further insight on the framework.
 
