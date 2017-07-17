@@ -77,18 +77,18 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
         rowsub = box.row(align=True)
         split = rowsub.split(percentage=0.6)
         colsub = split.column()
-        colsub.prop(evertims, "ip_client", text="")
+        colsub.prop(evertims, "ip_raytracing", text="")
         colsub = split.column()
-        colsub.prop(evertims, "port_write", text="port")
+        colsub.prop(evertims, "port_write_raytracing", text="port")
 
         rowsub = box.row(align=True)
         rowsub.label("Auralization IP adress & port:")
         rowsub = box.row(align=True)
         split = rowsub.split(percentage=0.6)
         colsub = split.column()
-        colsub.prop(evertims, "ip_sound_engine", text="")
+        colsub.prop(evertims, "ip_auralization", text="")
         colsub = split.column()
-        colsub.prop(evertims, "port_sound_engine", text="port")
+        colsub.prop(evertims, "port_write_auralization", text="port")
 
         # EVERTims auralization engine setup
         box = layout.box()

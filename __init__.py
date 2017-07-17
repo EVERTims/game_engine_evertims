@@ -54,6 +54,11 @@ else:
             )
 import imp
 
+# tag update required when changing mat file
+def updateMatFileCallback(self, context):
+    evertims = context.scene.evertims
+    evertims.mat_list_need_update = True
+
 class EVERTimsSettings(PropertyGroup):
 
     enable_bge = BoolProperty(
@@ -73,7 +78,7 @@ class EVERTimsSettings(PropertyGroup):
             )
     debug_rays = BoolProperty(
             name="Draw Rays",
-            description='Enable visual feedback on EVERTims ratracing in Blender',
+            description='Enable visual feedback on EVERTims raytracing in Blender',
             default=True,
             )
     debug_logs = BoolProperty(
@@ -96,12 +101,12 @@ class EVERTimsSettings(PropertyGroup):
             description="IP of the computer running Blender",
             default="127.0.0.1", maxlen=1024,
             )
-    ip_client = StringProperty(
+    ip_raytracing = StringProperty(
             name="IP EVERTims client",
             description="IP of the computer running the EVERTims raytracing client",
             default="127.0.0.1", maxlen=1024,
             )
-    port_write = IntProperty(
+    port_write_raytracing = IntProperty(
             name="Port write",
             description="Port used by EVERTims raytracing client to read data sent by the Blender",
             default=3858,
@@ -118,12 +123,12 @@ class EVERTimsSettings(PropertyGroup):
             description='Launch the EVERTims raytracing client as a subprocess (embedded in Blender)',
             default=False,
             )
-    ip_sound_engine = StringProperty(
+    ip_auralization = StringProperty(
             name="IP EVERTims auralization client",
             description="IP of the computer running the EVERTims auralization client",
             default="127.0.0.1", maxlen=1024,
             )
-    port_sound_engine = IntProperty(
+    port_write_auralization = IntProperty(
             name="Port EVERTims auralization client",
             description="Port used by the auralization client to read data sent by the raytracing client",
             default=3860,
@@ -165,8 +170,13 @@ class EVERTimsSettings(PropertyGroup):
     mat_list = StringProperty(
             name="Material List",
             description="A string of all available materials, displayed in GUI",
-            default="(need refresh)", maxlen=2048,
+            default="", maxlen=0, # unlimited length
             ) 
+    mat_list_need_update = BoolProperty(
+            name="Check whether mat_list need update of not",
+            description='',
+            default=True,
+            )
 
 class EVERTimsPreferences(AddonPreferences):
     bl_idname = __name__
@@ -179,7 +189,7 @@ class EVERTimsPreferences(AddonPreferences):
     raytracing_client_path_to_matFile = StringProperty(
             name="EVERTims Raytracing client material path",
             description="Path to the .mat file used by the EVERTims raytracing client",
-            default="//", maxlen=1024, subtype="FILE_PATH",
+            default="//", maxlen=1024, subtype="FILE_PATH", update = updateMatFileCallback,
             )
     auralization_client_path_to_binary = StringProperty(
             name="EVERTims auralization client binary path",

@@ -12,7 +12,9 @@ except ImportError:
 
 from .evertClass import *
 from . import OSC
+from . import evertUtils
 import socket
+import json
 
 class Evertims():
     """
@@ -32,6 +34,8 @@ class Evertims():
         self.rooms = dict()     # store scene's rooms
         self.sources = dict()   # store scene's sources
         self.listeners = dict() # store scene's listeners
+        self.materials = dict() # store evertims materials
+        self.rt60Values = [] # ugly wrapper for access of these values in BGE
 
         # define parameters related to raytracing visual feedback
         self.traceRays = False      # enable/disable visual feedback
@@ -43,9 +47,11 @@ class Evertims():
         # define network related parameters
         self.connect = {
         'raw_msg': '',              # To be filled in threading, contains raw socket datas awaiting to be processed (faster to forbid Evertims msg jamming the socket)
-        'ip_evert': 'localhost',    # IP of EVERTims' computer
+        'ip_raytracing': 'localhost',   # IP of EVERTims' computer
+        'ip_auralization': 'localhost', # IP of Auralization engine computer
         'ip_local': 'localhost',    # IP of Blender's computer
-        'port_w': 0,                # Port to write in EVERTims
+        'port_w_raytracing': 0,     # Port to write in EVERTims
+        'port_w_auralization': 0,   # Port to write in Auralization Engine
         'port_r': 0,                # Port to read from EVERTims
         'socket': None,             # socket to receive msg from EVERTims
         'socket_size': 2*1024,      # Size of reader socket (a_min = 124, v_min = ..?)
@@ -137,6 +143,20 @@ class Evertims():
         """
         self.listeners[obj.name] = SourceListener(obj, 'listener')
 
+    def setMaterials(self, matDict):
+        """
+        replace material dictionnary.
+
+        :param matDict: evertims materials dict
+        :type obj: dict
+        """
+        self.materials = matDict
+
+    def setRt60Values(self, valuesStr):
+        """
+        """
+        self.rt60Values = json.loads(valuesStr)
+
     def resetObjDict(self):
         """
         Clear EVERTims listener, Source and Room dictionnaries.
@@ -157,7 +177,7 @@ class Evertims():
         self.connect['port_r'] = port
         self.connect['ip_local'] = ip
 
-    def initConnection_write(self, ip, port):
+    def initConnection_writeRaytracing(self, ip, port):
         """
         Init Blender to EVERTims connection, used to send room, source, listener, etc. information
 
@@ -166,8 +186,20 @@ class Evertims():
         :type ip: String
         :type port: Integer
         """
-        self.connect['port_w'] = port
-        self.connect['ip_evert'] = ip
+        self.connect['port_w_raytracing'] = port
+        self.connect['ip_raytracing'] = ip
+
+    def initConnection_writeAuralization(self, ip, port):
+        """
+        Init Blender to Auralization engine connection, used to send rt60
+
+        :param ip: IP adress of client host running Auralization Engine
+        :param port: PORT where to write information sent to Auralization Engine
+        :type ip: String
+        :type port: Integer
+        """
+        self.connect['port_w_auralization'] = port
+        self.connect['ip_auralization'] = ip
 
     def isReady(self):
         """
@@ -176,14 +208,16 @@ class Evertims():
         parameters must have been defined.
         """
         if self.rooms and self.sources and self.listeners \
-            and self.connect['port_w'] and self.connect['ip_evert']:
+            and self.connect['port_w_raytracing'] and self.connect['ip_raytracing'] \
+            and self.connect['port_w_auralization'] and self.connect['ip_auralization']:
             return True
         else:
             print('rooms:', self.rooms)
             print('sources:', self.sources)
             print('listeners:', self.listeners)
-            print('port_w:', self.connect['port_w'])
-            print('ip_evert:', self.connect['ip_evert'])
+            print('materials:', self.materials)
+            print('port_w_raytracing:', self.connect['port_w_raytracing'])
+            print('ip_raytracing:', self.connect['ip_raytracing'])
             return False
 
     def updateClient(self, objType = ''):
@@ -201,21 +235,27 @@ class Evertims():
                     somethingToUpdate = True
                     msgList = room.getPropsListAsOSCMsgs()
                     for msg in msgList:
-                        self._sendOscMsg(self.connect['ip_evert'],self.connect['port_w'],msg)
+                        self._sendOscMsg(self.connect['ip_raytracing'],self.connect['port_w_raytracing'],msg)
+                    # update rt60
+                    if BLENDER_MODE == 'BGE':
+                        msg = self.rt60Values
+                    elif BLENDER_MODE == 'BPY':                    
+                        msg = evertUtils.getRt60Values(self.materials, room.obj)
+                    self._sendOscMsg(self.connect['ip_auralization'],self.connect['port_w_auralization'], '/rt60', msg)
 
         if (objType == 'source') or (objType == 'mobile') or not objType:
             for sourceName, source in self.sources.items():
                 if source.hasMoved():
                     somethingToUpdate = True
                     msg = source.getPropsAsOSCMsg()
-                    self._sendOscMsg(self.connect['ip_evert'],self.connect['port_w'],msg)
+                    self._sendOscMsg(self.connect['ip_raytracing'],self.connect['port_w_raytracing'],msg)
 
         if (objType == 'listener') or (objType == 'mobile') or not objType:
             for listenerName, listener in self.listeners.items():
                 if listener.hasMoved():
                     somethingToUpdate = True
                     msg = listener.getPropsAsOSCMsg()
-                    self._sendOscMsg(self.connect['ip_evert'],self.connect['port_w'],msg)
+                    self._sendOscMsg(self.connect['ip_raytracing'],self.connect['port_w_raytracing'],msg)
 
         return somethingToUpdate
 
@@ -241,7 +281,7 @@ class Evertims():
         # send room, listener, source info to EVERTims client
         self.updateClient()
         # send '/facefinished' to EVERTims client (start calculations)
-        self._sendOscMsg(self.connect['ip_evert'],self.connect['port_w'],'/facefinished')
+        self._sendOscMsg(self.connect['ip_raytracing'],self.connect['port_w_raytracing'],'/facefinished')
         # add local pre_draw method to to scene callback
         if BLENDER_MODE == 'BGE':
             gl.getCurrentScene().pre_draw.append(self._pre_draw_bge)
@@ -323,8 +363,7 @@ class Evertims():
             roomHasChanged = self.updateClient('room')
             if roomHasChanged:
                 if self.dbg: print('# reload room geometry')
-                self._sendOscMsg(self.connect['ip_evert'],self.connect['port_w'],'/facefinished')
-
+                self._sendOscMsg(self.connect['ip_raytracing'],self.connect['port_w_raytracing'],'/facefinished')
 
     def _getOscSocket(self, ip,host):
         """

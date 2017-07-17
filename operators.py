@@ -1,6 +1,9 @@
+import json
 import bpy
 import os
 from bpy.types import Operator
+from . import utils
+from .assets.scripts.evertims import ( Evertims, evertUtils )
 
  # to launch EVERTims raytracing client
 import subprocess
@@ -183,12 +186,17 @@ class EVERTimsInBge(Operator):
         if obj:
             bpy.context.scene.objects.active = obj
 
-            propList = [ 'enable_bge', 'debug_logs', 'debug_rays', 'ip_client', 'ip_local', 'movement_threshold_loc', 'movement_threshold_rot', 'port_read', 'port_write', 'room_object', 'source_object', 'listener_object']
+            propList = [ 'enable_bge', 'debug_logs', 'debug_rays', 'ip_local', 'ip_raytracing', 'ip_auralization', 'port_read', 'port_write_raytracing', 'port_write_auralization', 'movement_threshold_loc', 'movement_threshold_rot', 'room_object', 'source_object', 'listener_object']
             # sync. properties (for bge access) with GUI's
             for propName in propList:
                 propValue = eval('evertims.' + propName)
                 obj.game.properties[propName].value = propValue
 
+            # get room object, update its RT60 values (not possible in bge, based on bpy routines)
+            room = bpy.context.scene.objects.get(evertims.room_object)
+            rt60Values = evertUtils.getRt60Values(utils.str2dict(evertims.mat_list), room)
+            obj.game.properties['rt60Values'].value = json.dumps(rt60Values)
+        
         # reset old active object
         bpy.context.scene.objects.active = old_obj        
 
@@ -215,7 +223,6 @@ class EVERTimsInEditMode(Operator):
 
     arg = bpy.props.StringProperty()
 
-    from .assets.scripts.evertims import Evertims
     _evertims = Evertims()
     _handle_timer = None
 
@@ -251,6 +258,16 @@ class EVERTimsInEditMode(Operator):
 
         if loadType == 'PLAY':
 
+            # load mat file if not loaded already
+            evertims.mat_list = utils.loadMatFile(context)
+            self._evertims.setMaterials(utils.str2dict(evertims.mat_list))
+
+            # check room materials definition
+            roomMatError = self.checkRoomMaterials(context)
+            if roomMatError:
+                self.report({'ERROR'}, roomMatError)
+                return {'CANCELLED'}            
+            
             # init evertims
             isInitOk = self.initEvertims(context)
 
@@ -314,6 +331,22 @@ class EVERTimsInEditMode(Operator):
         if not context.area is None: 
             context.area.tag_redraw()
 
+    def checkRoomMaterials(self, context):
+        """
+        check if all room materials are defined in mat file, return error msg (string)
+        """
+        evertims = context.scene.evertims
+        objects = bpy.context.scene.objects
+        
+        room = objects.get(evertims.room_object)
+        if not room: return 'no room defined'
+
+        slots = room.material_slots
+        evertMat = utils.str2dict(evertims.mat_list)
+        for mat in slots: 
+            if not mat.name in evertMat: return 'undefined room material: ' + mat.name
+
+        return ''
 
     def initEvertims(self, context):
         """
@@ -321,8 +354,10 @@ class EVERTimsInEditMode(Operator):
         """
         evertims = context.scene.evertims
 
-        IP_EVERT = evertims.ip_client # EVERTims client IP address
-        PORT_W = evertims.port_write # port used by EVERTims client to read data sent by the BGE
+        IP_RAYTRACING = evertims.ip_raytracing # EVERTims client IP address
+        IP_AURALIZATION = evertims.ip_auralization # Auralization Engine IP address
+        PORT_W_RAYTRACING = evertims.port_write_raytracing # port used by EVERTims client to read data sent by the BGE
+        PORT_W_AURALIZATION = evertims.port_write_auralization # port used by EVERTims client to read data sent by the BGE
         IP_LOCAL = evertims.ip_local # local host (this computer) IP address, running the BGE
         PORT_R = evertims.port_read # port used by the BGE to read data sent by the EVERTims client
         DEBUG_LOG = evertims.debug_logs # enable / disable console log
@@ -364,7 +399,8 @@ class EVERTimsInEditMode(Operator):
         self._evertims.setMovementUpdateThreshold(MOVE_UPDATE_THRESHOLD_VALUE_LOC, MOVE_UPDATE_THRESHOLD_VALUE_ROT)
 
         # init network connections
-        self._evertims.initConnection_write(IP_EVERT, PORT_W)
+        self._evertims.initConnection_writeRaytracing(IP_RAYTRACING, PORT_W_RAYTRACING)
+        self._evertims.initConnection_writeAuralization(IP_AURALIZATION, PORT_W_AURALIZATION)
         self._evertims.initConnection_read(IP_LOCAL, PORT_R)
 
         # activate raytracing
@@ -476,8 +512,8 @@ class EVERTimsRaytracingClient(Operator):
             # get launch command out of GUI properties
             # cmd = "/Users/.../evertims/bin/ims -s 3858 -a 'listener_1/127.0.0.1:3860' -v 'listener_1/localhost:3862' -d 1 -D 2 -m /Users/.../evertims/resources/materials.dat -p 'listener_1/'"
             client_cmd  = bpy.path.abspath(addon_prefs.raytracing_client_path_to_binary)
-            client_cmd += " -s " + str(evertims.port_write) # reader port
-            client_cmd += " -a " + "listener_1" + "/" + evertims.ip_sound_engine + ":" + str(evertims.port_sound_engine)
+            client_cmd += " -s " + str(evertims.port_write_raytracing) # reader port
+            client_cmd += " -a " + "listener_1" + "/" + evertims.ip_auralization + ":" + str(evertims.port_write_auralization)
             client_cmd += " -v " + "listener_1" + "/" + evertims.ip_local + ":" + str(evertims.port_read)
             client_cmd += " -d " + str(evertims.min_reflection_order)
             client_cmd += " -D " + str(evertims.max_reflection_order)

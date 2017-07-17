@@ -11,7 +11,7 @@ except ImportError:
 # ------------------------------------
 
 
-from . import OSC
+from . import ( evertUtils, OSC )
 import mathutils
 import math
 import socket
@@ -84,6 +84,7 @@ class Room():
         """
         self.obj = kx_obj
         # self.objName = kx_obj.name # UNDO related
+        self.rt60Values = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
         # TODO: ADD GLOBAL NUMBERING ON '...' PROPERTY (TO AVOID 2 OBJECTS HAVING THE SAME)
         if not 'room' in self.obj:
