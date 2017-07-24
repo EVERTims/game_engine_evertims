@@ -109,6 +109,8 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
         rowsub.prop(addon_prefs, "raytracing_client_path_to_binary", text="ims")
         rowsub = box.row(align=True)
         rowsub.prop(addon_prefs, "raytracing_client_path_to_matFile", text="mat")
+        rowsub = box.row(align=True)
+        rowsub.operator("evert.misc_utils", text="Reload mat file", icon='TEXT').arg = 'FLAG_MAT_UPDATE'
 
         rowsub = box.row(align=True)
         rowsub.label("Reflection order:")

@@ -619,6 +619,25 @@ class EVERTimsAuralizationClient(Operator):
 
             return {'CANCELLED'}
 
+class EVERTimsUtils(Operator):
+    """Miscellaneous utilities"""
+    bl_label = "Mist. utils operators"
+    bl_idname = 'evert.misc_utils'
+    bl_options = {'REGISTER'}
+
+    arg = bpy.props.StringProperty()
+
+    def invoke(self, context, event):
+        """
+        Method called when button attached to local bl_idname clicked
+        """
+        evertims = context.scene.evertims
+        loadType = self.arg
+
+        # flag that mat file needs update (will happend just before next auralization session)
+        if loadType == 'FLAG_MAT_UPDATE':
+            evertims.mat_list_need_update = True
+            return {'FINISHED'}
 
 # ############################################################
 # Un/Registration
@@ -630,7 +649,8 @@ classes = (
     EVERTimsInBge,
     EVERTimsInEditMode,
     EVERTimsRaytracingClient,
-    EVERTimsAuralizationClient
+    EVERTimsAuralizationClient, 
+    EVERTimsUtils
     )
 
 def register():
