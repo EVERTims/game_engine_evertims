@@ -216,6 +216,12 @@ class Room():
             for v in f.vertices: # browse through vertice index
                 vect = obj.matrix_world * mesh.vertices[v].co
                 v_list.append(vect)
+            
+            # add third twice for triangle face (expected by evertims raytracing client)
+            if( len(f.vertices) == 3 ): 
+                vect = obj.matrix_world * mesh.vertices[ f.vertices[2] ].co
+                v_list.append(vect)
+
             d['vertices'] = v_list
 
             # store local dict
