@@ -24,8 +24,8 @@ bl_info = {
     "location": "3D View > Toolbox",
     "description": "A collection of tools to configure your EVERTims environment.",
     "warning": "",
-    'tracker_url': "https://evertims.github.io/website/#contact",
-    "wiki_url": "https://evertims.github.io/website",
+    'tracker_url': "https://evertims.github.io/#contact",
+    "wiki_url": "https://evertims.github.io",
     'support': 'COMMUNITY',
     "category": "Game Engine"
 }
