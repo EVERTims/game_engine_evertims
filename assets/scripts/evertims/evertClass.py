@@ -574,3 +574,40 @@ class RayManager():
             coord1, coord2 = (), ()
 
         return (onOff,ID,coord1,coord2)
+
+    def crystalizeVisibleRays(self):
+        """
+        Convert all existing rays into curves, added to the blender scene, not deleted when the simulation stops
+        """
+
+        # discard if no rays to draw
+        if( len( self.rayDict ) == 0 ):
+            return
+
+        # create the Curve Datablock
+        curveData = bpy.data.curves.new('EvertRay', type='CURVE')
+        curveData.dimensions = '3D'
+        curveData.resolution_u = 2
+
+        # map coords to spline
+        polyline = curveData.splines.new('POLY')
+        polyline.points.add( len(self.rayDict)*2 )
+        count = 0
+        for rayID, ray in self.rayDict.items():
+            polyline.points[count].co = (ray.p1[0], ray.p1[1], ray.p1[2], 1)
+            count += 1
+            polyline.points[count].co = (ray.p2[0], ray.p2[1], ray.p2[2], 1)
+            count += 1
+            print( "{} {} {}".format(ray.p1[0], ray.p1[1], ray.p1[2]))
+            print( "{} {} {}".format(ray.p2[0], ray.p2[1], ray.p2[2]))
+
+
+        # create Object
+        curveOB = bpy.data.objects.new('EvertRay', curveData)
+        curveData.bevel_depth = 0.01
+
+        # attach to scene and validate context
+        scn = bpy.context.scene
+        scn.objects.link(curveOB)
+        scn.objects.active = curveOB
+

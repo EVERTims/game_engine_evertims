@@ -294,6 +294,10 @@ class EVERTimsInEditMode(Operator):
 
             return {'CANCELLED'}
 
+        elif loadType == 'CRYSTALIZE':
+            self._evertims.crystalizeVisibleRays()
+            return {'FINISHED'}
+
 
     def modal(self, context, event):
         """

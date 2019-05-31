@@ -323,6 +323,14 @@ class Evertims():
             else:
                 print('### Cannot establish downlink connection to EVERTims server, Raytracing feedback deactivated')
 
+    def crystalizeVisibleRays(self):
+        """
+        Create a curve for all currently visible rays that will remain in the scene after the simulation is over
+        """
+
+        if self.rayManager: self.rayManager.crystalizeVisibleRays()
+
+
     def _pre_draw_bge(self):
         """
         Callback method.

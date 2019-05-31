@@ -129,6 +129,10 @@ class EVERTimsToolBar(EVERTimsUIBase, Panel):
         else:
             rowsub.operator("evert.evertims_raytracing_client", text="STOP", icon="REC").arg ='STOP'
 
+        # crystalize current rays (to curve)
+        rowsub = box.row(align=True)
+        rowsub.operator("evert.evertims_in_edit_mode", text="Crystalize visible rays", icon="HAIR").arg ='CRYSTALIZE'
+
         # Simulation Setup
         box = layout.box()
         box.label("On the fly auralization", icon='QUIT')  
